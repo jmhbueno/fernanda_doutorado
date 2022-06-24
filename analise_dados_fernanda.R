@@ -167,19 +167,18 @@ adptins_omega <- rely_qaes_adptins$omega.tot
 
 # Calculo dos escores nos fatores ====================================================================
 
+# Inversão dos valores dos itens do fator apesemo que estão invertidos
+expss::recode(qaes[ ,c('a4','a9','a14','a19','a39','a29','a34','a24')]) <- c(1~5,2~4,3~3,4~2,5~1)
+
 qaes$qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40) %>% rowMeans()
 qaes$qaes_adptsoc <- qaes %>% select(2, 7,12,17,22,27,32,37) %>% rowMeans()
 qaes$qaes_apesemo <- qaes %>% select(4, 9,14,19,39,29,34,24) %>% rowMeans()
 qaes$qaes_adptest <- qaes %>% select(3,38,13,18,23,28,33, 8) %>% rowMeans()
 qaes$qaes_adptins <- qaes %>% select(1, 6,11,16,21,26,36,31) %>% rowMeans()
 
-# variável apesemo calculada de forma invertida, porque é a única variável em que os itens estão invertidos.
-# A pontuação no fator ficou com os itens NÂO INVERTIDOS. Ou seja, a pontuação nesse fator está ao contrário dos demais.
-qaes <- qaes %>% mutate(apesemo_inve = (48-a4+a9+a14+a19+a39+a29+a34+a24)/8)
+df2$qaes_apesemo <- qaes$qaes_apesemo
 
-
-
-names(qaes)
+glimpse(qaes)
 names(df2)
 # estatisticas descritivas do qaes
 
