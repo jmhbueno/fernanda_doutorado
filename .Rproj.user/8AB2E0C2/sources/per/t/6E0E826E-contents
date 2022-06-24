@@ -1,0 +1,3222 @@
+#Importar banco de dados========================================================
+
+riasec <- riasec_ponto_zero #todas as variáveis baixadas do formulário Google.
+names(riasec)
+
+riasec$TCLE[riasec$TCLE == 'Concordo em participar da pesquisa'] <- '1'
+riasec$TCLE[riasec$TCLE == 'Não concordo em participar da pesquisa'] <- '0'
+riasec_1 <- riasec %>% filter(TCLE==1) # Eliminação de não respondentes
+riasec_2 <- riasec_1 %>% filter(Idade>=18) # Eliminação de menores de 18 anos 
+riasec_2 <- riasec_2 %>% slice(10:3009)
+riasec_2 <- riasec_2 %>% slice(-1471)
+view(riasec_2)
+riasec_3 <- riasec_2[1:2000, ] #banco de dados para análise exploratória
+riasec_4 <- riasec_2[2001:2609, ] # banco de dados para análise confirmatória
+view(riasec_3)
+view(riasec_3_original)
+R <- riasec_3 %>% select(42:65)
+I <- riasec_3 %>% select(66:78,138:144,146)
+A <- riasec_3 %>% select(79:91)
+S <- riasec_3 %>% select(92:105)
+E <- riasec_3 %>% select(106:123,145)
+C <- riasec_3 %>% select(124:137)
+
+names(R)
+
+# frequencia de algumas variaveis
+count(riasec_3, Sexo)
+count(riasec_4, Sexo)
+mean(x=riasec_3$Idade)
+mean(x=riasec_4$Idade)
+
+#AFE===========================================================================
+
+# Descrição dos participantes
+
+names(riasec_3)
+describe(riasec_3$Idade) %>% kable()
+describeBy(riasec_3$Idade,riasec_3$Sexo, mat=TRUE,digits=3) %>% kable()
+describe(riasec_3$Idade)
+esc <- riasec_3 %>% count(Escolaridade)
+prop.table(esc$n)
+count(riasec_3,Escolaridade)
+
+write
+
+# EFA REALISTICO====================================================================
+
+#KMO
+
+R %>% KMO()
+
+#Bartlett
+
+R %>% bartlett.test()
+
+# Paralell analysis
+
+poly_R <- R %>% polychoric(.)   # matriz de correlações policóricas para análise paralela.
+rho_R <- poly_R$rho # guardando apenas o Rho de Spearman da matriz de correlações policóricas
+scree_R<-scree(rho_R)
+
+pa_R <- fa.parallel(rho_R, n.obs=2000, fa="fa") # análise paralela sobre a matriz de correlações policóricas
+pa_R$fa.values #mostra os eigenvalues com os dados experimentais
+pa_R$fa.sim #mostra os eigenvalues com os dados simulados
+
+# OBS.: a análise paralela indicou 6 fatores, o scree-plot 3 ou 4 fatores,
+# e pelo critério de Kaiser-Guttman (eigenvalue > 1), formariam-se quatro fatores.
+# Assim, optou-se pela extração de 4 fatores.
+
+# Fatores
+names(R_2)
+r_efa <- fa(R, nfactors = '4', cor='poly', 
+            fm='wls', rotate = 'geominQ')
+# nessa analise, o item 7 apresentou cargas inferiores a 0,3 em todos os fatores.
+
+R <- R[ ,c(1:6,8:24)]
+
+r_efa <- fa(R, nfactors = '4', cor='poly', 
+            fm='wls', rotate = 'geominQ')
+
+r_efa$e.values
+# resultados em tabelas
+names (r_efa)
+r_efa$loadings
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+library(knitr)  #pacote para tabelas
+kable(r_efa$loadings[1:23, 1:4],digits = 2)
+
+#R-Fidedignidade
+#names(riasec_2)
+#riasec_2 %>% select(24:29,36,41:43,45) %>% alpha()
+
+names(R)
+
+rely_R1<-R %>% select(13:16,20,22,23) %>% omega(digits=3,poly=TRUE)
+rely_R2<-R %>% select(1,3,4,6,12,18:21,23) %>% omega(digits=3,poly=TRUE)
+rely_R3<-R %>% select(7:11) %>% omega(digits=3,poly=TRUE)
+rely_R4<-R %>% select(2,3,5) %>% omega(digits=3,poly=TRUE,nfactors = 2)
+
+
+
+rely_R1$alpha %>% round(digits=2)
+rely_R1$omega.tot %>% round(digits=2)
+rely_R2$alpha %>% round(digits=2)
+rely_R2$omega.tot %>% round(digits=2)
+rely_R3$alpha %>% round(digits=2)
+rely_R3$omega.tot %>% round(digits=2)
+rely_R4$alpha %>% round(digits=2)
+rely_R4$omega.tot %>% round(digits=2)
+
+#Cálculo das pontuações e inserção em riasec_2
+
+riasec_3$R1 <- R %>% select(13:16,20,22,23) %>% rowMeans()
+riasec_3$R2 <- R %>% select(1,3,4,6,12,18:21,23) %>% rowMeans()
+riasec_3$R3<-R %>% select(7:11) %>% rowMeans()
+riasec_3$R4<-R %>% select(2,3,5) %>% rowMeans()
+names(riasec_3)
+glimpse(riasec_3$R1)
+
+#riasec_2 <- riasec_2 %>% mutate(R1) %>% mutate(R2) %>% mutate (R3) %>% mutate (R4)
+
+# EFA INVESTIGATIVO==================================================================
+
+#KMO
+
+I %>% KMO()
+
+#Bartlett
+
+I %>% bartlett.test()
+
+# Analise paralela
+
+poly_I <- I %>% polychoric(.)   # matriz de correlacoes policoricas para analise paralela.
+rho_I <- poly_I$rho # guardando apenas o Rho de Spearman da matriz de correlacoes policóricas
+scree_I<-scree(rho_I)
+
+pa_I <- fa.parallel(rho_I, n.obs=2000, fa="fa") # analise paralela sobre a matriz de correlações policóricas
+pa_I$fa.values #mostra os eigenvalues com os dados experimentais
+pa_I$fa.sim #mostra os eigenvalues com os dados simulados
+
+# OBS.: a analise paralela indicou 7 fatores, o scree-plot 3 ou 4 fatores,
+# e pelo criterio de Kaiser-Guttman (eigenvalue > 1), formariam-se quatro fatores.
+# Assim, optou-se pela extracao de 4 fatores.
+
+# Extracao dos fatores.
+
+I_efa <- fa(I, nfactors = '3', cor='poly', 
+            fm='wls', rotate = 'geominQ')
+
+I_efa$loadings
+I_efa$e.values
+# resultados em tabelas
+names (I_efa)
+I_efa$loadings
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+library(knitr)  #pacote para tabelas
+kable(I_efa$loadings[1:21, 1:3],digits = 2)
+
+#R-Fidedignidade
+#names(riasec_2)
+#riasec_2 %>% select(24:29,36,41:43,45) %>% alpha()
+
+names(I)
+
+rely_I1<-I %>% select(9,11,14:21) %>% omega(digits=3,poly=TRUE)
+rely_I2<-I %>% select(1:6) %>% omega(digits=3,poly=TRUE)
+rely_I3<-I %>% select(7,8,10,12,13) %>% omega(digits=3,poly=TRUE)
+
+rely_I1$alpha %>% round(digits=2)
+rely_I1$omega.tot %>% round(digits=2)
+rely_I2$alpha %>% round(digits=2)
+rely_I2$omega.tot %>% round(digits=2)
+rely_I3$alpha %>% round(digits=2)
+rely_I3$omega.tot %>% round(digits=2)
+
+#Calculo das pontuacoes e insersao em riasec_3
+
+riasec_3$I1<-I %>% select(9,11,14:21) %>% rowMeans()
+riasec_3$I2<-I %>% select(1:6) %>% rowMeans()
+riasec_3$I3<-I %>% select(7,8,10,12,13) %>% rowMeans()
+names(riasec_3)
+#riasec_2 <- riasec_2 %>% mutate(R1) %>% mutate(R2) %>% mutate (R3) %>% mutate (R4)
+
+
+# EFA ARTISTICO======================================================================
+
+#KMO
+
+A %>% KMO()
+
+#Bartlett
+
+A %>% bartlett.test()
+
+# Análise paralela
+
+poly_A <- A %>% polychoric(.)   # matriz de correlações policóricas para análise paralela.
+rho_A <- poly_A$rho # guardando apenas o Rho de Spearman da matriz de correlações policóricas
+scree_A<-scree(rho_A)
+
+pa_A <- fa.parallel(rho_A, n.obs=2000, fa="fa") # análise paralela sobre a matriz de correlações policóricas
+pa_A$fa.values #mostra os eigenvalues com os dados experimentais
+pa_A$fa.sim #mostra os eigenvalues com os dados simulados
+
+# OBS.: a análise paralela indicou 7 fatores, o scree-plot 3 ou 4 fatores,
+# e pelo critério de Kaiser-Guttman (eigenvalue > 1), formariam-se quatro fatores.
+# Assim, optou-se pela extração de 4 fatores.
+
+# Extração dos fatores.
+
+A_efa <- A %>% select (1:12) %>% fa(nfactors = '2', cor='poly', 
+                                    fm='wls', rotate = 'geominQ')
+
+A_efa$loadings
+A_efa$e.values
+# resultados em tabelas
+names (A_efa)
+A_efa$loadings
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+library(knitr)  #pacote para tabelas
+kable(A_efa$loadings[1:12, 1:2],digits = 2)
+
+#R-Fidedignidade
+#names(riasec_2)
+#riasec_2 %>% select(24:29,36,41:43,45) %>% alpha()
+
+names(A)
+
+rely_A1<-A %>% select(1:3,6,8:10) %>% omega(digits=3,poly=TRUE)
+rely_A2<-A %>% select(4,5,7,11,12) %>% omega(digits=3,poly=TRUE)
+
+rely_A1$alpha %>% round(digits=2)
+rely_A1$omega.tot %>% round(digits=2)
+rely_A2$alpha %>% round(digits=2)
+rely_A2$omega.tot %>% round(digits=2)
+
+#Cálculo das pontuações e inserção em riasec_3
+
+riasec_3$A1<-A %>% select(1:3,6,8:10) %>% rowMeans()
+riasec_3$A2<-A %>% select(4,5,7,11,12) %>% rowMeans()
+names(riasec_3)
+
+#riasec_2 <- riasec_2 %>% mutate(R1) %>% mutate(R2) %>% mutate (R3) %>% mutate (R4)
+
+
+# EFA SOCIAL=========================================================================
+
+#KMO
+
+S %>% KMO()
+
+#Bartlett
+
+S %>% bartlett.test()
+
+# Análise paralela
+
+poly_S <- S %>% polychoric(.)   # matriz de correlações policóricas para análise paralela.
+rho_S <- poly_S$rho # guardando apenas o Rho de Spearman da matriz de correlações policóricas
+scree_S<-scree(rho_S)
+
+pa_S <- fa.parallel(rho_S, n.obs=2000, fa="fa") # análise paralela sobre a matriz de correlações policóricas
+pa_S$fa.values #mostra os eigenvalues com os dados experimentais
+pa_S$fa.sim #mostra os eigenvalues com os dados simulados
+
+# Extração dos fatores.
+
+S <- S %>% select(1:5,7:14) #Retirada do item 6 por apresentar carga em dois fatores.
+S_efa <- S %>% fa(nfactors = '2', cor='poly', 
+                  fm='wls', rotate = 'geominQ')
+
+
+S_efa$loadings
+S_efa$e.values
+# resultados em tabelas
+names (S_efa)
+S_efa$loadings
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+library(knitr)  #pacote para tabelas
+kable(S_efa$loadings[1:13, 1:2],digits = 2)
+
+#R-Fidedignidade
+
+rely_S1<-S %>% select(1:5) %>% omega(digits=3,poly=TRUE)
+rely_S2<-S %>% select(6:13) %>% omega(digits=3,poly=TRUE)
+
+rely_S1$alpha %>% round(digits=2)
+rely_S1$omega.tot %>% round(digits=2)
+rely_S2$alpha %>% round(digits=2)
+rely_S2$omega.tot %>% round(digits=2)
+
+#Cálculo das pontuações e inserção em riasec_3
+
+riasec_3$S1<-S %>% select(1:5) %>% rowMeans()
+riasec_3$S2<-S %>% select(6:13) %>% rowMeans()
+names(riasec_3)
+
+#riasec_2 <- riasec_2 %>% mutate(R1) %>% mutate(R2) %>% mutate (R3) %>% mutate (R4)
+
+# EFA SOCIAL com itens que vieram de I2====
+
+names(I)
+df_I2 <- I %>% select(1:6)
+names(df_I2)
+S_com_I2 <- bind_cols(S,df_I2)
+
+names(S_com_I2)
+
+#KMO
+
+S_com_I2 %>% KMO()
+
+#Bartlett
+
+S_com_I2 %>% bartlett.test()
+
+# Análise paralela
+
+poly_S_com_I2 <- S_com_I2 %>% polychoric(.)   # matriz de correlações policóricas para análise paralela.
+rho_S_com_I2 <- poly_S_com_I2$rho # guardando apenas o Rho de Spearman da matriz de correlações policóricas
+scree_S<-scree(rho_S_com_I2)
+
+pa_S_com_I2 <- fa.parallel(rho_S, n.obs=2000, fa="fa") # análise paralela sobre a matriz de correlações policóricas
+pa_S_com_I2$fa.values #mostra os eigenvalues com os dados experimentais
+pa_S_com_I2$fa.sim #mostra os eigenvalues com os dados simulados
+
+# Extração dos fatores.
+
+#S <- S %>% select(1:5,7:14) #Retirada do item 6 por apresentar carga em dois fatores.
+S_com_I2_efa <- S_com_I2 %>% fa(nfactors = '3', cor='poly', 
+                                fm='wls', rotate = 'geominQ')
+
+
+S_com_I2_efa$loadings
+S_com_I2_efa$e.values
+
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+library(knitr)  #pacote para tabelas
+kable(S_com_I2_efa$loadings[1:19, 1:3],digits = 2)
+
+#R-Fidedignidade
+#names(riasec_2)
+#riasec_2 %>% select(24:29,36,41:43,45) %>% alpha()
+
+names(S_com_I2)
+rely_S1<-S_com_I2 %>% select(1:5) %>% omega(digits=3,poly=TRUE)
+rely_S2<-S_com_I2 %>% select(6:13) %>% omega(digits=3,poly=TRUE)
+rely_S3_<-S_com_I2 %>% select(14:19) %>% omega(digits=3,poly=TRUE)
+
+rely_S1$alpha %>% round(digits=2)
+rely_S1$omega.tot %>% round(digits=2)
+rely_S2$alpha %>% round(digits=2)
+rely_S2$omega.tot %>% round(digits=2)
+rely_S3_$alpha %>% round(digits=2)
+rely_S3_$omega.tot %>% round(digits=2)
+
+#Cálculo das pontuações e inserção em riasec_3
+
+riasec_3$S1<-S %>% select(1:5) %>% rowMeans()
+riasec_3$S2<-S %>% select(6:13) %>% rowMeans()
+riasec_3$S3<-S_com_I2 %>% select(14:19) %>% rowMeans()
+
+names(riasec_3)
+names(S_com_I2)
+glimpse(S_com_I2$`Ajudar pessoas em situação de vulnerabilidade social (pobres, em situação de rua ou de abandono, etc.)`)
+
+riasec_3 %>% select (135:141) %>% pairs.panels()
+
+## Continuacao - Emanuel analises ---------
+
+# EFA EMPREENDEDOR===================================================================
+
+#KMO
+names(E)
+
+E %>% KMO() # 0.94
+
+#Bartlett
+
+E %>% bartlett.test() # 322.62
+
+# Análise paralela
+
+poly_E <- E %>% polychoric(.)   # matriz de correlações policóricas para análise paralela.
+rho_E <- poly_E$rho # guardando apenas o Rho de Spearman da matriz de correlações policóricas
+scree_E<-scree(rho_E)
+
+pa_E <- fa.parallel(rho_E, n.obs=2000, fa="fa") # análise paralela sobre a matriz de correlações policóricas
+pa_S$fa.values #mostra os eigenvalues com os dados experimentais
+pa_S$fa.sim #mostra os eigenvalues com os dados simulados
+
+# OBS.: a análise paralela indicou 4 fatores, o scree-plot 4 fatores,
+# e pelo critério de Kaiser-Guttman (eigenvalue > 1), formariam-se dois fatores.
+# Assim, optou-se pela extração de 4 fatores.
+
+# Extração dos fatores.
+
+E_efa <- E %>% fa(nfactors = '4', cor='poly', 
+                  fm='wls', rotate = 'geominQ')
+
+
+E_efa$loadings
+E_efa$e.values
+# resultados em tabelas
+names (E_efa)
+E_efa$loadings
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+kable(E_efa$loadings[1:19, 1:4],digits = 2)
+
+#R-Fidedignidade
+#names(riasec_2)
+#riasec_2 %>% select(24:29,36,41:43,45) %>% alpha()
+
+
+rely_E1<-E %>% select(1:6,17,18) %>% omega(digits=3,poly=TRUE)
+rely_E2<-E %>% select(13:17) %>% omega(digits=3,poly=TRUE)
+rely_E3<-E %>% select(3,11,12,19) %>% omega(digits=3,poly=TRUE)
+rely_E4<-E %>% select(7:10) %>% omega(digits=3,poly=TRUE)
+
+rely_E1$alpha %>% round(digits=2)
+rely_E1$omega.tot %>% round(digits=2)
+rely_E2$alpha %>% round(digits=2)
+rely_E2$omega.tot %>% round(digits=2)
+rely_E3$alpha %>% round(digits=2)
+rely_E3$omega.tot %>% round(digits=2)
+rely_E4$alpha %>% round(digits=2)
+rely_E4$omega.tot %>% round(digits=2)
+
+#Cálculo das pontuações e inserção em riasec_3
+
+riasec_3$E1<-E %>% select(1:6,17,18) %>% rowMeans()
+riasec_3$E2<-E %>% select(13:17) %>% rowMeans()
+riasec_3$E3<-E %>% select(3,11,12,19) %>% rowMeans()
+riasec_3$E4<-E %>% select(7:10) %>% rowMeans()
+
+names(riasec_3)
+
+# EFA CONVENCIONAL===================================================================
+
+#KMO
+
+C %>% KMO() # 0.94
+
+#Bartlett
+
+C %>% bartlett.test() # 345.44
+
+# Análise paralela
+
+poly_C <- C %>% polychoric(.)   # matriz de correlações policóricas para análise paralela.
+rho_C <- poly_C$rho # guardando apenas o Rho de Spearman da matriz de correlações policóricas
+scree_C<-scree(rho_C)
+
+pa_C <- fa.parallel(rho_C, n.obs=2000, fa="fa") # análise paralela sobre a matriz de correlações policóricas
+pa_C$fa.values #mostra os eigenvalues com os dados experimentais
+pa_C$fa.sim #mostra os eigenvalues com os dados simulados
+
+# OBS.: a análise paralela indicou 4 fatores, o scree-plot 3 OU 4 fatores,
+# e pelo critério de Kaiser-Guttman (eigenvalue > 1), formariam-se 1 fatores.
+# Assim, optou-se pela extração de 4 fatores.
+
+# Extração dos fatores.
+
+C_efa <- C %>% select(1:4,6:14) %>% fa(nfactors = '2', cor='poly', 
+                                       fm='wls', rotate = 'geominQ')
+
+C_efa$loadings
+C_efa$e.values
+# resultados em tabelas
+
+
+#install.packages("DT")  # pacote para fazer tabelas.
+#library(DT)
+#view(R)
+
+#datatable(r_itens$loadings[1:23, 1:3], rownames=TRUE, editable = TRUE) 
+
+kable(C_efa$loadings[1:13, 1:2],digits = 2)
+
+#R-Fidedignidade
+#names(riasec_2)
+#riasec_2 %>% select(24:29,36,41:43,45) %>% alpha()
+names(riasec_3)
+
+rely_C1<-C %>% select(1:4,6) %>% omega(digits=3,poly=TRUE)
+rely_C2<-C %>% select(7:13) %>% omega(digits=3,poly=TRUE)
+
+rely_C1$alpha %>% round(digits=2)
+rely_C1$omega.tot %>% round(digits=2)
+rely_C2$alpha %>% round(digits=2)
+rely_C2$omega.tot %>% round(digits=2)
+
+
+#Cálculo das pontuações e inserção em riasec_3
+
+riasec_3$C1<-C %>% select(1:4,6) %>% rowMeans()
+riasec_3$C2<-C %>% select(7:13) %>% rowMeans()
+
+
+names(riasec_3)
+
+# EFA DE SEGUNDA ORDEM===========================================================
+
+escores <- riasec_3 %>% select (150:166) 
+names(escores)
+escores %>% fa.parallel()
+scree_segunda_ordem<-scree(escores)
+
+riasec_segunda_ordem <- escores %>% fa(nfactors = 6, fm='wls', 
+                                       rotate = 'geominQ', cor = 'cor', use = "pairwise")
+
+riasec_segunda_ordem$e.values
+
+kable(riasec_segunda_ordem$loadings[1:17, 1:6],digits = 2)
+
+riasec_segunda_ordem$e.values
+names(escores)
+rely_R<- escores %>% select(1:4) %>% psych::alpha()
+rely_I<- escores %>% select(5,7) %>% psych::alpha()
+rely_A<- escores %>% select(8:9) %>% psych::alpha()
+rely_S<- escores %>% select(6,10,11) %>% psych::alpha()
+rely_E<- escores %>% select(12:15) %>% psych::alpha()
+rely_C<- escores %>% select(16:17) %>% psych::alpha()
+
+rely_R$total
+rely_I$total
+rely_A$total
+rely_S$total
+rely_E$total
+rely_C$total
+
+riasec_3$R<- escores %>% select(1:4) %>% rowMeans()
+riasec_3$I<- escores %>% select(5,7) %>% rowMeans()
+riasec_3$A<- escores %>% select(8,9) %>% rowMeans()
+riasec_3$S<- escores %>% select(6,10,11) %>% rowMeans()
+riasec_3$E<- escores %>% select(12:15) %>% rowMeans()
+riasec_3$C<- escores %>% select(16,17) %>% rowMeans()
+names(riasec_3)
+
+write_csv2(riasec_3, "riasec_escores.csv")
+
+
+riasec_3 %>% write.csv('riasec_geral')
+
+install.packages("xlsRadWrite")
+library(xlsReadWrite)
+write.xls(mydata, "c:/arquivo.xls") 
+
+library(xlsx)
+write.xlsx(riasec_3,"nomeObjeto.xlsx")
+
+#ESTUDO 2 - ANALISE FATORIAL CONFIRMATORIA======================================
+# PREPARACAO DOS DADOS PARA CFA (N=609) ======
+# Dados reais -
+## Foram criados duas copias do riasec_4, o RIASEC_ITENS_CFA_2 foi criado com a manuntencao das colunas originais
+## o RIASEC_ITENS_CFA_2 tem a finalidade de auxiliar a consulta da POSICAO dos itens para montar o modelo da CFA
+## o RIASEC_ITENS_CFA foi criado com a substituicao dos nomes das colunas para facilitar a montagem da CFA
+names(riasec_4)
+RIASEC_ITENS_CFA_2 <- riasec_4 %>% select(42:146)
+
+names(RIASEC_ITENS_CFA_2)
+names(RIASEC_ITENS_CFA)
+
+RIASEC_ITENS_CFA <- RIASEC_ITENS_CFA_2 %>%  rename_all(list(~c('y1',
+                                                               'y2',
+                                                               'y3',
+                                                               'y4',
+                                                               'y5',
+                                                               'y6','y7','y8','y9',
+                                                               'y10','y11','y12','y13',
+                                                               'y14','y15','y16','y17',
+                                                               'y18','y19','y20','y21',
+                                                               'y22','y23','y24','y25',
+                                                               'y26','y27','y28','y29',
+                                                               'y30','y31','y32','y33',
+                                                               'y34','y35','y36','y37',
+                                                               'y38','y39','y40','y41',
+                                                               'y42','y43','y44','y45','y46',
+                                                               'y47','y48','y49','y50','y51',
+                                                               'y52','y53','y54','y55','y56',
+                                                               'y57','y58','y59','y60','y61','y62',
+                                                               'y63','y64','y65','y66','y67','y68',
+                                                               'y69','y70','y71','y72','y73','y74',
+                                                               'y75','y76','y77','y78','y79','y80',
+                                                               'y81','y82','y83','y84','y85','y86',
+                                                               'y87','y88','y89','y90','y91','y92',
+                                                               'y93','y94','y95','y96','y97','y98','y99',
+                                                               'y100','y101','y102','y103','y104','y105')))
+
+
+
+names(RIASEC_ITENS_CFA)
+
+R_2 <- RIASEC_ITENS_CFA %>% select(1:6,8:24)
+I_2 <- RIASEC_ITENS_CFA %>% select(25:37,97:103,105)
+A_2 <- RIASEC_ITENS_CFA %>% select(38:50)
+#S_2 <- RIASEC_ITENS_CFA %>% select(1:5,7:14) #PROBLEMA
+S_2 <- RIASEC_ITENS_CFA %>% select(51:55,57:64) 
+E_2 <- RIASEC_ITENS_CFA %>% select(65:82,104)
+C_2 <- RIASEC_ITENS_CFA %>% select(83:96)
+
+
+# FIDEDIGNIDADE Realistico ====
+
+fator_R1<-R_2 %>% select(13,15,22,23) %>% omega(poly=TRUE)
+fator_R2<-R_2 %>% select(1,4,6,21) %>% omega(poly=TRUE)
+fator_R3<-R_2 %>% select(7,8,10,11) %>% omega(poly=TRUE)
+fator_R4<-R_2 %>% select(2,3,5) %>% omega(nfactors=2,poly=TRUE)
+fator_R_reduzido <- R_2 %>% select (1:8,10,11,13,15,21:23) %>% omega(poly=TRUE)
+
+fator_R1$alpha %>% round(digits=2)
+fator_R1$omega.tot %>% round(digits=2)
+fator_R2$alpha %>% round(digits=2)
+fator_R2$omega.tot %>% round(digits=2)
+fator_R3$alpha %>% round(digits=2)
+fator_R3$omega.tot %>% round(digits=2)
+fator_R4$alpha %>% round(digits=2)
+fator_R4$omega.tot %>% round(digits=2)
+fator_R_reduzido$alpha %>% round(digits=2)
+fator_R_reduzido$omega.tot %>% round(digits=2)
+
+# FIDEDIGNIDADE Investigativo====
+
+fator_I1<-I_2 %>% select(9,14,19,20) %>% omega(poly=TRUE)
+#fator_I2<-I_2 %>% select(1:4) %>% omega() # Com base na EFA_SO, esse fator passou a ser o S3
+fator_I2<-I_2 %>% select(7,8,10,13) %>% omega(nfactors=2,poly=TRUE) # Em decorrência da trasnferência 
+# do fator anterior, I3 passou a ser I2
+fator_I_reduzido <- I_2 %>% select (7:10,13,14,19,20) %>% omega(nfactors=2,digits=3,poly=TRUE)
+
+fator_I1$alpha %>% round(2)
+fator_I1$omega.tot  %>% round(2)
+fator_I2$alpha %>% round(2)
+fator_I2$omega.tot %>% round(2)
+fator_I_reduzido$alpha %>% round(2)
+fator_I_reduzido$omega.tot %>% round(2)
+
+
+# FIDEDIGNIDADE Artistico====
+fator_A1<-A_2 %>% select(1,2,6,8) %>% omega(poly=TRUE)
+fator_A2<-A_2 %>% select(4,5,11,12) %>% omega(poly=TRUE)
+fator_A_reduzido <- A_2 %>% select (1,2,4:6,8,11,12) %>% omega(poly=TRUE)
+
+fator_A1$alpha %>% round(2)
+fator_A1$omega.tot %>% round(2)
+fator_A2$alpha %>% round(2)
+fator_A2$omega.tot %>% round(2)
+fator_A_reduzido$alpha %>% round(2)
+fator_A_reduzido$omega.tot %>% round(2)
+
+# FIDEDIGNIDADE Social=====
+
+# Como o fator I2 carregou em S, tem que trazer os itens de I2 para ca.
+df_temp <- I_2 %>% select(1:4)
+S_2 <- bind_cols(S_2,df_temp)
+
+#S_2<-merge(S_2,df_temp)
+
+names(RIASEC_ITENS_CFA)
+view(S_2)
+colMeans(S_2)
+
+fator_S2 <- RIASEC_ITENS_CFA %>% select(51,53:55) %>% omega(poly=TRUE)
+
+fator_S1<-S_2 %>% select(6,8,9,11) %>% omega(poly=TRUE)
+fator_S2<-S_2 %>% select(1,3:5) %>% omega(poly=TRUE,nfactors=1)
+fator_S3<-S_2 %>% select(14:17) %>% omega(poly=TRUE) #antigo fator I2
+fator_S_reduzido <- S_2 %>% select (1,3:6,8,9,11,14:17) %>% omega(poly=TRUE)
+
+fator_S1$alpha %>% round(2)
+fator_S1$omega.tot %>% round(2)
+fator_S2$alpha %>% round(2)
+fator_S2$omega.tot %>% round(2)
+fator_S3$alpha %>% round(2)
+fator_S3$omega.tot %>% round(2)
+fator_S_reduzido$alpha %>% round(2)
+fator_S_reduzido$omega.tot %>% round(2)
+
+# FIDEDIGNIDADE Empreendedor====
+
+fator_E1<-E_2 %>% select(1,4,5,6) %>% omega(poly=TRUE)
+fator_E2<-E_2 %>% select(13:16) %>% omega(poly=TRUE)
+fator_E3<-E_2 %>% select(3,11,12,19) %>% omega(poly=TRUE)
+fator_E4<-E_2 %>% select(7:10) %>% omega(poly=TRUE)
+fator_E_reduzido <- E_2 %>% select (1,3:16,19) %>% omega(poly=TRUE)
+
+fator_E1$alpha %>% round(2)
+fator_E1$omega.tot %>% round(2)
+fator_E2$alpha %>% round(2)
+fator_E2$omega.tot %>% round(2)
+fator_E3$alpha %>% round(2)
+fator_E3$omega.tot %>% round(2)
+fator_E4$alpha %>% round(2)
+fator_E4$omega.tot %>% round(2)
+fator_E_reduzido$alpha %>% round(2)
+fator_E_reduzido$omega.tot %>% round(2)
+
+# FIDEDIGNIDADE Convencional====
+
+fator_C1<-C_2 %>% select(1:4) %>% omega(poly=TRUE)
+fator_C2<-C_2 %>% select(8:10,14) %>% omega(poly=TRUE)
+fator_C_reduzido <- C_2 %>% select (1:4,8:10,14) %>% omega(poly=TRUE)
+
+fator_C1$alpha %>% round(2)
+fator_C1$omega.tot %>% round(2)
+fator_C2$alpha %>% round(2)
+fator_C2$omega.tot %>% round(2)
+fator_C_reduzido$alpha %>% round(2)
+fator_C_reduzido$omega.tot %>% round(2)
+
+# ESTUDO 2 - ANALISE FATORIAL CONFIRMATORIA (N=609)====
+
+cfa_model_reduzido_geral <- 
+'R_1 =~ y14+y24+y16+y23
+R_2 =~ y1+y4+y6+y22
+R_3 =~ y9+y11+y8+y12
+R_4 =~ y2+y3+y5
+R_Geral =~ R_1+R_2+R_3+R_4
+I_1 =~ y97+y33+y102+y103
+I_2 =~ y31+y32+y37+y34
+I_Geral =~ I_1+I_2
+A_1 =~ y43+y38+y39+y45
+A_2 =~ y42+y41+y48+y49
+A_Geral =~ A_1+A_2
+S_1 =~ y60+y57+y59+y62
+S_2 =~ y53+y54+y51+y55
+S_3 =~ y25+y28+y27+y26
+S_Geral =~ S_1+S_2+S_3
+E_1 =~ y68+y70+y69+y65
+E_2 =~ y80+y78+y77+y79
+E_3 =~ y76+y104+y67+y75
+E_4 =~ y72+y73+y74+y71
+E_Geral =~ E_1+E_2+E_3+E_4
+C_1 =~ y83+y86+y85+y84
+C_2 =~ y90+y91+y92+y96
+C_Geral =~ C_1+C_2'
+names(RIASEC_ITENS_CFA_2)
+cfa_reduzido_geral_results <- cfa_model_reduzido_geral %>% cfa(data=RIASEC_ITENS_CFA, estimator='dwls', 
+                                                               orthogonal=FALSE, ordered=TRUE)
+
+resultados_cfa_geral <- summary(cfa_reduzido_geral_results, standardized=TRUE, fit.measures=TRUE, modindices=FALSE)
+
+parameterEstimates(cfa_reduzido_geral_results, standardized = TRUE) %>% filter(op=='=~') %>% 
+  select('Dimens?o'=lhs, Item=rhs, B=est, SE=se, Z=z, 'p-valor'=pvalue, Beta=std.all)
+
+semPaths(cfa_reduzido_geral_results, 
+         whatLabels = "std",
+         intercepts = FALSE,
+         residuals = FALSE, 
+         edge.label.cex = 0.9,
+         layout = 'tree',
+         rotation = 2,
+         edge.color = 'purple',
+         color = list(lat='deepskyblue', man = 'grey'),
+         normalize=TRUE)
+
+# Calculo das pontuacoes nos fatores e facetas - Banco com 3000 sujeitos.
+
+# Calculo das pontuacoes no banco com todos os sujeitos (riasec_5)====
+names(riasec_5)
+riasec_5 <- riasec_2 %>% select(42:146)
+
+riasec_5$R1<-riasec_5 %>% select(14,16,23,24) %>% rowMeans()
+riasec_5$R2<-riasec_5 %>% select(1,4,6,22) %>% rowMeans()
+riasec_5$R3<-riasec_5 %>% select(8,9,11,12) %>% rowMeans()
+riasec_5$R4<-riasec_5 %>% select(2,3,5) %>% rowMeans()
+riasec_5$R <-riasec_5 %>% select(14,16,23,24,1,4,6,22,8,9,11,12,2,3,5) %>% rowMeans()
+
+riasec_5$I1<-riasec_5 %>% select(33,97,102,103) %>% rowMeans()
+riasec_5$I2<-riasec_5 %>% select(31,32,34,37) %>% rowMeans()
+riasec_5$I <-riasec_5 %>% select(31:34,37,97,102,103) %>% rowMeans()
+
+riasec_5$A1<-riasec_5 %>% select(38,39,43,45) %>% rowMeans()
+riasec_5$A2<-riasec_5 %>% select(41,42,48,49) %>% rowMeans()
+riasec_5$A <-riasec_5 %>% select(38,39,43,45,41,42,48,49) %>% rowMeans()
+
+riasec_5$S1 <-riasec_5 %>% select(57,59,60,62) %>% rowMeans()
+riasec_5$S2 <-riasec_5 %>% select(51,53,54,55) %>% rowMeans()
+riasec_5$S3 <-riasec_5 %>% select(25:28) %>% rowMeans()
+riasec_5$S  <-riasec_5 %>% select(57,59,60,62,51,53,54,55,25:28) %>% rowMeans()
+
+riasec_5$E1 <-riasec_5 %>% select(65,68:70) %>% rowMeans()
+riasec_5$E2 <-riasec_5 %>% select(77:80) %>% rowMeans()
+riasec_5$E3 <-riasec_5 %>% select(67,75,76,104) %>% rowMeans()
+riasec_5$E4 <-riasec_5 %>% select(71:74) %>% rowMeans()
+riasec_5$E  <-riasec_5 %>% select(65,68:70,77:80,67,75,76,104,71:74) %>% rowMeans()
+
+riasec_5$C1 <-riasec_5 %>% select(83:86) %>% rowMeans()
+riasec_5$C2 <-riasec_5 %>% select(90:92,96) %>% rowMeans()
+riasec_5$C  <-riasec_5 %>% select(83:86,90:92,96) %>% rowMeans()
+
+# Salvar os escores no banco geral com 3000 sujeitos: o riasec_2
+names(riasec_2)
+names(riasec_5)
+df1 <- riasec_5 %>% select(106:128)
+riasec_2 <- bind_cols(riasec_2,df1)
+
+# Analise de itens com TRI=====================================================
+
+# Modelo 1 - TRI 1 parametro (Modelo Rasch)====
+mod1<-mirt(icer[ ,7:40],1,itemtype='Rasch')
+#mod1 - criacao de um objeto com os comandos da TRI.
+#mirt - comando da TRI, o proprio pacote.
+#icer - o nome do banco e [ ,7:40] eh a definicao dos itens a serem analisados.
+# 1 indica o numero de fatores presentes.
+#itemtype indica o tipo de modelacao que sera usado.
+
+# Arrumação do banco de dados====
+
+riasec_2 %>% slice(1:2609) %>% 
+  count(Sexo) %>% 
+  mutate(porc = n/sum(n)*100) %>% 
+  kable()
+
+riasec_2 %>% slice(1:2609) %>% 
+  count(Escolaridade) %>% 
+  mutate(porc = n/sum(n)*100) %>% 
+  kable()
+
+riasec_2 %>% slice(1:2609) %>% 
+  count(`Estado civil`) %>% 
+  mutate(porc = n/sum(n)*100) %>% 
+  kable()
+
+riasec_2 %>% slice(1:2609) %>% 
+  count(`Renda familiar aproximada`) %>% 
+  mutate(porc = n/sum(n)*100) %>% 
+  kable()
+
+names(riasec_4)
+
+riasec
+riasec_5 %>% count()
+view(riasec_5)
+riasec_6 <- riasec_5 %>% slice(1:2609)
+
+# recodificar dentro da variável (1,2,3 e 4 em 0, 1, 2 e 3) 
+
+#riasec_5[,1:105][riasec_5[,1:105] == 1] <- 0
+#riasec_5[,1:105][riasec_5[,1:105] == 2] <- 1
+#riasec_5[,1:105][riasec_5[,1:105] == 3] <- 2
+#riasec_5[,1:105][riasec_5[,1:105] == 4] <- 3
+
+names(riasec_6)
+R1_itens_selecionados <-riasec_6 %>% select(14,16,23,24)
+R2_itens_selecionados <-riasec_6 %>% select(1,4,6,22)
+R3_itens_selecionados <-riasec_6 %>% select(8,9,11,12)
+R4_itens_selecionados <-riasec_6 %>% select(2,3,5) 
+
+I1_itens_selecionados <-riasec_6 %>% select(33,97,102,103)
+I2_itens_selecionados <-riasec_6 %>% select(31,32,34,37)
+
+A1_itens_selecionados <-riasec_6 %>% select(38,39,43,45)
+A2_itens_selecionados <-riasec_6 %>% select(41,42,48,49)
+
+S1_itens_selecionados <-riasec_6 %>% select(57,59,60,62)
+S2_itens_selecionados <-riasec_6 %>% select(51,53,54,55)
+S3_itens_selecionados <-riasec_6 %>% select(25:28)
+
+E1_itens_selecionados <-riasec_6 %>% select(65,68:70)
+E2_itens_selecionados <-riasec_6 %>% select(77:80)
+E3_itens_selecionados <-riasec_6 %>% select(67,75,76,104)
+E4_itens_selecionados <-riasec_6 %>% select(71:74)
+
+C1_itens_selecionados <-riasec_6 %>% select(83:86)
+C2_itens_selecionados <-riasec_6 %>% select(90:92,96)
+
+#R_itens_selecionados <- riasec_5 %>% select(14,16,23,24,1,4,6,22,8,9,11,12,2,3,5)
+#I_itens_selecionados <- riasec_5 %>% select(33,97,102,103,31:34)
+#A_itens_selecionados <- riasec_5 %>% select(38,39,43,45,41,42,48,49)
+#S_itens_selecionados <- riasec_5 %>% select(57,59,60,62,51,53,54,55,25:28)
+#E_itens_selecionados <- riasec_5 %>% select(65,68:70,77:80,67,75,76,104,71:74)
+#C_itens_selecionados <- riasec_5 %>% select(83:86,90:92,96)
+
+# TRI - Fator Realístico====
+
+tri_R1_model <- mirt(R1_itens_selecionados, #nome do objeto
+                     1, # numero de fatores, no caso, e unidimensional
+                     itemtype = 'rsm') #Rasch rating scale model using the 'gpcmIRT' structure (Andrich, 1978).
+kable(coef(tri_R1_model,simplify=TRUE,IRTpars=TRUE, as.data.frame=TRUE)) #kable() é uma função que melhora a tabela.
+kable(itemfit(tri_R1_model,fit_stats = 'infit'))
+
+tri_R1_model <- mirt(R1_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_R1_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_R1_model,fit_stats = 'infit'))
+
+tri_R2_model <- mirt(R2_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_R2_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_R2_model,fit_stats = 'infit'))
+
+tri_R3_model <- mirt(R3_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_R3_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_R3_model,fit_stats = 'infit'))
+plot(tri_R3_model, type="trace")
+
+tri_R4_model <- mirt(R4_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_R4_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_R4_model,fit_stats = 'infit'))
+plot(tri_R4_model, type="trace")
+
+tri_I1_model <- mirt(I1_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_I1_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_I1_model,fit_stats = 'infit'))
+
+tri_I2_model <- mirt(I2_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_I2_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_I2_model,fit_stats = 'infit'))
+plot(tri_I2_model, type="trace")
+
+tri_A1_model <- mirt(A1_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_A1_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_A1_model,fit_stats = 'infit'))
+plot(tri_A1_model, type="trace")
+
+tri_A2_model <- mirt(A2_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_A2_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_A2_model,fit_stats = 'infit'))
+plot(tri_A2_model, type="trace")
+
+tri_S1_model <- mirt(S1_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_S1_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_S1_model,fit_stats = 'infit'))
+
+tri_S2_model <- mirt(S2_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_S2_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_S2_model,fit_stats = 'infit'))
+
+tri_S3_model <- mirt(S3_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_S3_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_S3_model,fit_stats = 'infit'))
+
+tri_E1_model <- mirt(E1_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_E1_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_E1_model,fit_stats = 'infit'))
+
+tri_E2_model <- mirt(E2_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_E2_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_E2_model,fit_stats = 'infit'))
+
+tri_E3_model <- mirt(E3_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_E3_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_E3_model,fit_stats = 'infit'))
+
+tri_E4_model <- mirt(E4_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_E4_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_E4_model,fit_stats = 'infit'))
+
+tri_C1_model <- mirt(C1_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_C1_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_C1_model,fit_stats = 'infit'))
+
+tri_C2_model <- mirt(C2_itens_selecionados, 1, itemtype = 'rsm') 
+kable(coef(tri_C2_model,simplify=TRUE,IRTpars=TRUE))
+kable(itemfit(tri_C2_model,fit_stats = 'infit'))
+
+# Curva de informação x erro====
+
+plot(tri_R1_model, type="infoSE")#, which.items = 4)
+plot(tri_R2_model, type="infoSE")
+plot(tri_R3_model, type="infoSE")
+plot(tri_R4_model, type="infoSE")
+
+plot(tri_I1_model, type="infoSE")
+plot(tri_I2_model, type="infoSE")
+plot(tri_I2_model, type="trace")
+
+plot(tri_A1_model, type="infoSE")
+plot(tri_A2_model, type="infoSE")
+
+plot(tri_S1_model, type="infoSE")
+plot(tri_S2_model, type="infoSE")
+plot(tri_S3_model, type="infoSE")
+
+plot(tri_E1_model, type="infoSE")
+plot(tri_E2_model, type="infoSE")
+plot(tri_E3_model, type="infoSE")
+plot(tri_E4_model, type="infoSE")
+
+plot(tri_C1_model, type="infoSE")
+plot(tri_C2_model, type="infoSE")
+
+# ESTUDO 3 - REGRESSÕES ========================================================
+
+### Organizacao dos dados ---
+names(riasec_banco_final)
+view(riasec_banco_final)
+view(riasec_2)
+riasec_banco_final <- riasec_banco_final %>% slice(-1471)
+riasec_banco_final <- riasec_banco_final %>% select(-c(160:182))
+
+
+riasec_banco_final <- riasec_banco_final %>% rename(
+  Trabalho = 'A qual das áreas abaixo o seu trabalho se relaciona predominantemente?')
+
+count(riasec_banco_final,Trabalho)
+names(riasec_banco_final)
+riasec_banco_final <- riasec_banco_final %>% mutate(Front_end = if_else(Trabalho == 'Desenvolvimento front-end',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Back_end = if_else(Trabalho == 'Desenvolvimento back-end',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Mobile = if_else(Trabalho == 'Desenvolvimento Mobile',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Full_stack = if_else(Trabalho == 'Desenvolvimento Full-Stack',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Banco_Dados = if_else(Trabalho == 'Banco de Dados',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Big_data = if_else(Trabalho == 'Big data',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(ciencia_dados = if_else(Trabalho == 'Ciência de dados',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(informacao = if_else(Trabalho == 'Segurança da informação',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(computadores = if_else(Trabalho == 'Redes de computadores',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Nuvem = if_else(Trabalho == 'Nuvem',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(UX = if_else(Trabalho == 'UX/Experiência do usuário',1,0))
+riasec_banco_final <- riasec_banco_final %>% mutate(Classificacao_Erica_Area = `Classificação Érica - Área`)
+riasec_banco_final <- riasec_banco_final %>% mutate(Classificacao_Erica_Grupo = `Classificação Érica - Grupo`)
+
+count(riasec_banco_final,UX)
+
+names(riasec_banco_final)
+count(riasec_banco_final,Classificacao_Erica_Grupo)
+## retirada da coluna 25 e 26 feita pela Erika e colocada ao final do banco.
+riasec_banco_final <- riasec_banco_final %>% select(-25,-26)
+teste$y[teste$y == '1'] <- '9'
+riasec_banco_final$Classificacao_Erica_Grupo[riasec_banco_final$Classificacao_Erica_Grupo=="Gestão de Projetos"] <- "Gestão de projetos"
+riasec_banco_final$Classificacao_Erica_Grupo[riasec_banco_final$Classificacao_Erica_Grupo=="UX/Experiência do Usuário"] <- "UX/Experiência do usuário"
+
+names(riasec_banco_final)
+riasec_banco_final <- riasec_banco_final %>% rename(Trabalha_informacao_superior = c(23))
+riasec_banco_final <- riasec_banco_final %>% rename(Trabalha_informacao_tecnico = c(13))
+
+## Alteracao do nome de banco para facilitar a analise
+# Ausencia do Ti_tec nesse banco, alterando a posicao da coluna 24 para a coluna 23.
+Grande_banco_riasec <- riasec_banco_final
+names(Grande_banco_riasec)
+count(Grande_banco_riasec,UX)
+count(Grande_banco_riasec,ti_userx)
+
+# Unir os NAs e N?o em um so valor numerico = 0
+#Todos que disseram sim em algumas das etapas viram 1
+
+Grande_banco_riasec$Trabalha_informacao_tecnico[is.na(Grande_banco_riasec$Trabalha_informacao_tecnico)] <- 0
+Grande_banco_riasec$Trabalha_informacao_tecnico[Grande_banco_riasec$Trabalha_informacao_tecnico == 'Não'] <- 0
+Grande_banco_riasec$Trabalha_informacao_tecnico[Grande_banco_riasec$Trabalha_informacao_tecnico == 'Sim'] <- 1
+
+Grande_banco_riasec$Trabalha_informacao_superior[is.na(Grande_banco_riasec$Trabalha_informacao_superior)] <- 0
+Grande_banco_riasec$Trabalha_informacao_superior[Grande_banco_riasec$Trabalha_informacao_superior == 'Não'] <- 0
+Grande_banco_riasec$Trabalha_informacao_superior[Grande_banco_riasec$Trabalha_informacao_superior == 'Sim'] <- 1
+# Transformar as variaveis em numerico
+Grande_banco_riasec$Trabalha_informacao_superior <- as.numeric(as.character(Grande_banco_riasec$Trabalha_informacao_superior))
+Grande_banco_riasec$Trabalha_informacao_tecnico <- as.numeric(as.character(Grande_banco_riasec$Trabalha_informacao_tecnico))
+# Criar uma variavel nova com o nome *ti* em que se soma trabalha superior e tecnico
+# Por haver possibilidade de marcar sim em apenas uma das opcoes, a soma nao resultara em valor 2
+# Dessa forma, quem marcar 1 em alguma das opcoes ficara com resultado final de 1
+# Essa nova variavel tera entao apenas sujeitos que trabalham com informatica seja no superior ou tecnico
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(ti = Trabalha_informacao_superior + Trabalha_informacao_tecnico)
+
+count(Grande_banco_riasec, Trabalha_informacao_superior)
+count(Grande_banco_riasec, Trabalha_informacao_tecnico)
+count(Grande_banco_riasec, ti)
+
+
+## Ajustes
+## alteracao de nome das variaveis de Erica
+Grande_banco_riasec <- Grande_banco_riasec %>% rename(
+  ti_area = 'Classificacao_Erica_Area')
+Grande_banco_riasec <- Grande_banco_riasec %>% rename(
+  ti_grupo = 'Classificacao_Erica_Grupo')
+
+names(Grande_banco_riasec)
+
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, Trabalho))
+unique(Grande_banco_riasec$ti_area)
+count(Grande_banco_riasec, ti_area)
+Grande_banco_riasec$ti_area[Grande_banco_riasec$ti_area == '\tCiência de Dados'] <- 'Ciência de Dados'
+Grande_banco_riasec$ti_area[Grande_banco_riasec$ti_area == 'Ciência de dados'] <- 'Ciência de Dados'
+Grande_banco_riasec$ti_area[Grande_banco_riasec$ti_area == 'UX/Experiência do usuário'] <- 'UX/Experiência do Usuário'
+Grande_banco_riasec$ti_area[Grande_banco_riasec$ti_area == 'Gestão de Projetos'] <- 'Gestão de projetos'
+
+Grande_banco_riasec$ti_grupo[Grande_banco_riasec$ti_grupo == 'UX/Experiência do usuário'] <- 'UX/Experiência do Usuário'
+Grande_banco_riasec$ti_grupo[Grande_banco_riasec$ti_grupo == 'Gestão de Projetos'] <- 'Gestão de projetos'
+
+### criacao de variaveis-----
+# copia do ti para front end
+Grande_banco_riasec$ti_front <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_front))
+
+# Primeira etapa e selecionar a profissao desejada e colocar como 2 no ti_front
+Grande_banco_riasec$ti_front[Grande_banco_riasec$ti_area == 'Desenvolvimento front-end'] <- 2
+# Em seguida, todos que sao de ti mas nao fazem parte da profissao especifica levam NA
+Grande_banco_riasec$ti_front[Grande_banco_riasec$ti_front == 1] <- 'NA'
+# Depois, o grupo especifico que era 2 sera transformado em 1 para auxiliar o calculo da regressao logistica
+Grande_banco_riasec$ti_front[Grande_banco_riasec$ti_front == 2] <- 1
+
+# copia do ti para redes de computadores
+
+Grande_banco_riasec$ti_redes <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_redes))
+
+Grande_banco_riasec$ti_redes[Grande_banco_riasec$ti_area == 'Redes de computadores'] <- 2
+Grande_banco_riasec$ti_redes[Grande_banco_riasec$ti_redes == 1] <- 'NA'
+Grande_banco_riasec$ti_redes[Grande_banco_riasec$ti_redes == 2] <- 1
+
+# copia do ti para Desenvolvimento Full-Stack
+
+Grande_banco_riasec$ti_stack <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_stack))
+
+Grande_banco_riasec$ti_stack[Grande_banco_riasec$ti_area == 'Desenvolvimento Full-Stack'] <- 2
+Grande_banco_riasec$ti_stack[Grande_banco_riasec$ti_stack == 1] <- 'NA'
+Grande_banco_riasec$ti_stack[Grande_banco_riasec$ti_stack == 2] <- 1
+
+# copia do ti para Banco de Dados
+
+Grande_banco_riasec$ti_banco <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_banco))
+
+Grande_banco_riasec$ti_banco[Grande_banco_riasec$ti_area == 'Banco de Dados'] <- 2
+Grande_banco_riasec$ti_banco[Grande_banco_riasec$ti_banco == 1] <- 'NA'
+Grande_banco_riasec$ti_banco[Grande_banco_riasec$ti_banco == 2] <- 1
+
+# copia do ti para Desenvolvimento back-end
+
+Grande_banco_riasec$ti_back_ <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_back_))
+
+Grande_banco_riasec$ti_back_[Grande_banco_riasec$ti_area == 'Desenvolvimento back-end'] <- 2
+Grande_banco_riasec$ti_back_[Grande_banco_riasec$ti_back_ == 1] <- 'NA'
+Grande_banco_riasec$ti_back_[Grande_banco_riasec$ti_back_ == 2] <- 1
+
+# copia do ti para Suporte e manutencao	
+
+Grande_banco_riasec$ti_supor <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_supor))
+
+Grande_banco_riasec$ti_supor[Grande_banco_riasec$ti_area == 'Suporte e manutenção'] <- 2
+Grande_banco_riasec$ti_supor[Grande_banco_riasec$ti_supor == 1] <- 'NA'
+Grande_banco_riasec$ti_supor[Grande_banco_riasec$ti_supor == 2] <- 1
+
+# copia do ti para Ciencia de Dados	
+
+Grande_banco_riasec$ti_cienc <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_cienc))
+
+Grande_banco_riasec$ti_cienc[Grande_banco_riasec$ti_area == 'Ciência de Dados'] <- 2
+Grande_banco_riasec$ti_cienc[Grande_banco_riasec$ti_cienc == 1] <- 'NA'
+Grande_banco_riasec$ti_cienc[Grande_banco_riasec$ti_cienc == 2] <- 1
+
+# copia do ti para Seguranca da informacao	
+
+Grande_banco_riasec$ti_segur <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_segur))
+
+Grande_banco_riasec$ti_segur[Grande_banco_riasec$ti_area == 'Segurança da informação'] <- 2
+Grande_banco_riasec$ti_segur[Grande_banco_riasec$ti_segur == 1] <- 'NA'
+Grande_banco_riasec$ti_segur[Grande_banco_riasec$ti_segur == 2] <- 1
+
+# copia do ti para UX/Experiencia do Usuario	
+
+Grande_banco_riasec$ti_userx <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_userx))
+
+Grande_banco_riasec$ti_userx[Grande_banco_riasec$ti_area == 'UX/Experiência do Usuário'] <- 2
+Grande_banco_riasec$ti_userx[Grande_banco_riasec$ti_userx == 1] <- 'NA'
+Grande_banco_riasec$ti_userx[Grande_banco_riasec$ti_userx == 2] <- 1
+
+# copia do ti para Nuvem
+
+Grande_banco_riasec$ti_nuvem <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_nuvem))
+
+Grande_banco_riasec$ti_nuvem[Grande_banco_riasec$ti_area == 'Nuvem'] <- 2
+Grande_banco_riasec$ti_nuvem[Grande_banco_riasec$ti_nuvem == 1] <- 'NA'
+Grande_banco_riasec$ti_nuvem[Grande_banco_riasec$ti_nuvem == 2] <- 1
+
+# copia do ti para Gestao de projetos
+
+Grande_banco_riasec$ti_gesta <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_gesta))
+
+Grande_banco_riasec$ti_gesta[Grande_banco_riasec$ti_area == 'Gestão de projetos'] <- 2
+Grande_banco_riasec$ti_gesta[Grande_banco_riasec$ti_gesta == 1] <- 'NA'
+Grande_banco_riasec$ti_gesta[Grande_banco_riasec$ti_gesta == 2] <- 1
+
+# copia do ti para Qualidade e teste de software
+
+Grande_banco_riasec$ti_quali <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_quali))
+
+Grande_banco_riasec$ti_quali[Grande_banco_riasec$ti_area == 'Qualidade e teste de software'] <- 2
+Grande_banco_riasec$ti_quali[Grande_banco_riasec$ti_quali == 1] <- 'NA'
+Grande_banco_riasec$ti_quali[Grande_banco_riasec$ti_quali == 2] <- 1
+
+# copia do ti para Educacao	
+
+Grande_banco_riasec$ti_educa <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_educa))
+
+Grande_banco_riasec$ti_educa[Grande_banco_riasec$ti_area == 'Educação'] <- 2
+Grande_banco_riasec$ti_educa[Grande_banco_riasec$ti_educa == 1] <- 'NA'
+Grande_banco_riasec$ti_educa[Grande_banco_riasec$ti_educa == 2] <- 1
+
+# copia do ti para Engenharia de Dados/Big Data
+
+Grande_banco_riasec$ti_bdata <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_bdata))
+
+Grande_banco_riasec$ti_bdata[Grande_banco_riasec$ti_area == 'Engenharia de Dados/Big Data'] <- 2
+Grande_banco_riasec$ti_bdata[Grande_banco_riasec$ti_bdata == 1] <- 'NA'
+Grande_banco_riasec$ti_bdata[Grande_banco_riasec$ti_bdata == 2] <- 1
+
+# copia do ti para Desenvolvimento Mobile/Aplicativos Moveis	
+
+Grande_banco_riasec$ti_mobil <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_area))
+view(count(Grande_banco_riasec, ti_mobil))
+
+Grande_banco_riasec$ti_mobil[Grande_banco_riasec$ti_area == 'Desenvolvimento Mobile/Aplicativos Móveis'] <- 2
+Grande_banco_riasec$ti_mobil[Grande_banco_riasec$ti_mobil == 1] <- 'NA'
+Grande_banco_riasec$ti_mobil[Grande_banco_riasec$ti_mobil == 2] <- 1
+
+###### criacao de variaveis ti a partir do ti_grupo ---
+## criacao da variavel ti Desenvolvimento
+
+Grande_banco_riasec$ti_g_desen <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_desen))
+
+Grande_banco_riasec$ti_g_desen[Grande_banco_riasec$ti_grupo == 'Desenvolvimento'] <- 2
+Grande_banco_riasec$ti_g_desen[Grande_banco_riasec$ti_g_desen == 1] <- 'NA'
+Grande_banco_riasec$ti_g_desen[Grande_banco_riasec$ti_g_desen == 2] <- 1
+
+## criacao da variavel ti Infraestrutura
+
+Grande_banco_riasec$ti_g_infra <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_infra))
+
+Grande_banco_riasec$ti_g_infra[Grande_banco_riasec$ti_grupo == 'Infraestrutura'] <- 2
+Grande_banco_riasec$ti_g_infra[Grande_banco_riasec$ti_g_infra == 1] <- 'NA'
+Grande_banco_riasec$ti_g_infra[Grande_banco_riasec$ti_g_infra == 2] <- 1
+
+## criacao da variavel ti Dados
+
+Grande_banco_riasec$ti_g_dados <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_dados))
+
+Grande_banco_riasec$ti_g_dados[Grande_banco_riasec$ti_grupo == 'Dados'] <- 2
+Grande_banco_riasec$ti_g_dados[Grande_banco_riasec$ti_g_dados == 1] <- 'NA'
+Grande_banco_riasec$ti_g_dados[Grande_banco_riasec$ti_g_dados == 2] <- 1
+
+## criacao da variavel ti Suporte e manutencao	
+
+Grande_banco_riasec$ti_g_supma <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_supma))
+
+Grande_banco_riasec$ti_g_supma[Grande_banco_riasec$ti_grupo == 'Suporte e manutenção'] <- 2
+Grande_banco_riasec$ti_g_supma[Grande_banco_riasec$ti_g_supma == 1] <- 'NA'
+Grande_banco_riasec$ti_g_supma[Grande_banco_riasec$ti_g_supma == 2] <- 1
+
+## criacao da variavel ti UX/Experiencia do Usuario		
+
+Grande_banco_riasec$ti_g_userx <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_userx))
+count(Grande_banco_riasec, ti_grupo)
+count(Grande_banco_riasec, ti_g_userx)
+Grande_banco_riasec$ti_g_userx[Grande_banco_riasec$ti_grupo == 'UX/Experiência do usuário'] <- 2
+Grande_banco_riasec$ti_g_userx[Grande_banco_riasec$ti_g_userx == 1] <- 'NA'
+Grande_banco_riasec$ti_g_userx[Grande_banco_riasec$ti_g_userx == 2] <- 1
+count(Grande_banco_riasec,ti_g_userx)
+## criacao da variavel ti Gestao de projetos		
+
+Grande_banco_riasec$ti_g_gesta <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_gesta))
+
+Grande_banco_riasec$ti_g_gesta[Grande_banco_riasec$ti_grupo == 'Gestão de projetos'] <- 2
+Grande_banco_riasec$ti_g_gesta[Grande_banco_riasec$ti_g_gesta == 1] <- 'NA'
+Grande_banco_riasec$ti_g_gesta[Grande_banco_riasec$ti_g_gesta == 2] <- 1
+
+## criacao da variavel ti Educacao		
+
+Grande_banco_riasec$ti_g_educa <- Grande_banco_riasec$ti
+view(count(Grande_banco_riasec, ti_grupo))
+view(count(Grande_banco_riasec, ti_g_educa))
+
+Grande_banco_riasec$ti_g_educa[Grande_banco_riasec$ti_grupo == 'Educação'] <- 2
+Grande_banco_riasec$ti_g_educa[Grande_banco_riasec$ti_g_educa == 1] <- 'NA'
+Grande_banco_riasec$ti_g_educa[Grande_banco_riasec$ti_g_educa == 2] <- 1
+
+names(Grande_banco_riasec)
+count(Grande_banco_riasec,ti_userx)
+### Transformacao em numerico de todas as variaveis que serao usadas na regressao
+
+Grande_banco_riasec$ti_g_educa <- as.numeric(as.character(Grande_banco_riasec$ti_g_educa))
+Grande_banco_riasec$ti_g_gesta <- as.numeric(as.character(Grande_banco_riasec$ti_g_gesta))
+Grande_banco_riasec$ti_g_userx <- as.numeric(as.character(Grande_banco_riasec$ti_g_userx))
+Grande_banco_riasec$ti_g_supma <- as.numeric(as.character(Grande_banco_riasec$ti_g_supma))
+Grande_banco_riasec$ti_g_dados <- as.numeric(as.character(Grande_banco_riasec$ti_g_dados))
+Grande_banco_riasec$ti_g_infra <- as.numeric(as.character(Grande_banco_riasec$ti_g_infra))
+Grande_banco_riasec$ti_g_desen <- as.numeric(as.character(Grande_banco_riasec$ti_g_desen))
+#Grande_banco_riasec$ti_mobil <- as.numeric(as.character(Grande_banco_riasec$ti_mobil))
+#Grande_banco_riasec$ti_bdata <- as.numeric(as.character(Grande_banco_riasec$ti_bdata))
+#Grande_banco_riasec$ti_educa <- as.numeric(as.character(Grande_banco_riasec$ti_educa))
+#Grande_banco_riasec$ti_quali <- as.numeric(as.character(Grande_banco_riasec$ti_quali))
+#Grande_banco_riasec$ti_gesta <- as.numeric(as.character(Grande_banco_riasec$ti_gesta))
+#Grande_banco_riasec$ti_nuvem <- as.numeric(as.character(Grande_banco_riasec$ti_nuvem))
+#Grande_banco_riasec$ti_userx <- as.numeric(as.character(Grande_banco_riasec$ti_userx))
+#Grande_banco_riasec$ti_segur <- as.numeric(as.character(Grande_banco_riasec$ti_segur))
+#Grande_banco_riasec$ti_cienc <- as.numeric(as.character(Grande_banco_riasec$ti_cienc))
+#Grande_banco_riasec$ti_supor <- as.numeric(as.character(Grande_banco_riasec$ti_supor))
+#Grande_banco_riasec$ti_back_ <- as.numeric(as.character(Grande_banco_riasec$ti_back_))
+#Grande_banco_riasec$ti_banco <- as.numeric(as.character(Grande_banco_riasec$ti_banco))
+#Grande_banco_riasec$ti_stack <- as.numeric(as.character(Grande_banco_riasec$ti_stack))
+#Grande_banco_riasec$ti_redes <- as.numeric(as.character(Grande_banco_riasec$ti_redes))
+#Grande_banco_riasec$ti_front <- as.numeric(as.character(Grande_banco_riasec$ti_front))
+
+
+###### Regressoes para todas as variaveis------
+view(Grande_banco_riasec)
+logit_g_educa <- glm(ti_g_educa ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_gesta <- glm(ti_g_gesta ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_userx <- glm(ti_g_userx ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_supma <- glm(ti_g_supma ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_dados <- glm(ti_g_dados ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_infra <- glm(ti_g_infra ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_desen <- glm(ti_g_desen ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_mobil <- glm(ti_mobil ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_bdata <- glm(ti_bdata ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_educa <- glm(ti_educa ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_quali <- glm(ti_quali ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_gesta <- glm(ti_gesta ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_nuvem <- glm(ti_nuvem ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_userx <- glm(ti_userx ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_segur <- glm(ti_segur ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_cienc <- glm(ti_cienc ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_supor <- glm(ti_supor ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_back_ <- glm(ti_back_ ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_banco <- glm(ti_banco ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_stack <- glm(ti_stack ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_redes <- glm(ti_redes ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_front <- glm(ti_front ~ R+I+A+S+E+C, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+
+# Repeticao das sintaxes anteriores mas com as facetas no lugar dos fatores
+
+
+logit_g_educa <- glm(ti_g_educa ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_gesta <- glm(ti_g_gesta ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_userx <- glm(ti_g_userx ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_supma <- glm(ti_g_supma ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_dados <- glm(ti_g_dados ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_infra <- glm(ti_g_infra ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+logit_g_desen <- glm(ti_g_desen ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_mobil <- glm(ti_mobil ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_bdata <- glm(ti_bdata ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_educa <- glm(ti_educa ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_quali <- glm(ti_quali ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_gesta <- glm(ti_gesta ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_nuvem <- glm(ti_nuvem ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_userx <- glm(ti_userx ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_segur <- glm(ti_segur ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_cienc <- glm(ti_cienc ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_supor <- glm(ti_supor ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_back_ <- glm(ti_back_ ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_banco <- glm(ti_banco ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_stack <- glm(ti_stack ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_redes <- glm(ti_redes ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+#logit_front <- glm(ti_front ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, family = binomial('logit'), data=Grande_banco_riasec, na.action =na.omit)
+
+### sumario de todas as regressoes -----
+
+options(scipen = 999) #op??o para elimina??o da nota??o de expoentes
+
+summary(logit_g_educa)
+
+exp(coef(logit_g_educa)) #odds ratio: quantas vezes as chances de uma pessoa trabalhar com educa??o aumenta em fun??o do aumento de um ponto na escala original.
+anova(logit_g_educa, test="Chisq")
+coef(logit_g_educa) %>% exp()
+
+1-logit_g_educa$deviance/logit_g_educa$null.deviance #pseudo R square
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(g_educa_prev = predict(logit_g_educa,type="response"))
+#Grande_banco_riasec <- Grande_banco_riasec %>% mutate(logit_g_educa_prev=if_else(logit_g_educa_prev<.5,1,0))
+
+summary(logit_g_educa)
+summary(logit_g_gesta)
+summary(logit_g_userx)
+summary(logit_g_supma)
+summary(logit_g_dados)
+summary(logit_g_infra)
+summary(logit_g_desen)
+
+#summary(logit_mobil)
+#summary(logit_bdata)
+#summary(logit_educa)
+#summary(logit_quali)
+#summary(logit_gesta)
+#summary(logit_nuvem)
+#summary(logit_userx)
+#summary(logit_segur)
+#summary(logit_cienc)
+#summary(logit_supor)
+#summary(logit_back_)
+#summary(logit_banco)
+#summary(logit_stack)
+#summary(logit_redes)
+#summary(logit_front)
+
+anova(logit_g_educa, test="Chisq") # para ver se o modelo prediz melhor que a m?dia.
+
+#odds ratio
+coef(logit_g_educa) %>% exp()
+coef(logit_g_gesta) %>% exp()
+coef(logit_g_userx) %>% exp()
+coef(logit_g_supma) %>% exp()
+coef(logit_g_dados) %>% exp()
+coef(logit_g_infra) %>% exp()
+coef(logit_g_desen) %>% exp()
+
+Grande_banco_riasec %>% select(165,166) %>% corr.test()
+Grande_banco_riasec %>% filter(ti_g_desen == 1) %>% select(165,166) %>% corr.test()
+
+unique(Grande_banco_riasec$Trabalha_informacao_superior)
+Grande_banco_riasec$Sexoclass
+Grande_banco_riasec %>% group_by(ti) %>% summarise(n=n()) %>% kable()
+names(Grande_banco_riasec)
+# calculo no numero de participantes por sexo.
+
+Grande_banco_riasec %>% group_by(ti_g_educa, Sexo) %>% summarise(n=n()) %>% kable()
+Grande_banco_riasec %>% group_by(ti_g_gesta, Sexo) %>% summarise(n=n()) %>% kable()
+Grande_banco_riasec %>% group_by(ti_g_userx, Sexo) %>% summarise(n=n()) %>% kable()
+Grande_banco_riasec %>% group_by(ti_g_supma, Sexo) %>% summarise(n=n()) %>% kable()
+Grande_banco_riasec %>% group_by(ti_g_dados, Sexo) %>% summarise(n=n()) %>% kable()
+Grande_banco_riasec %>% group_by(ti_g_infra, Sexo) %>% summarise(n=n()) %>% kable()
+Grande_banco_riasec %>% group_by(ti_g_desen, Sexo) %>% summarise(n=n()) %>% kable()
+
+
+# calculo da porcentagem de homens e mulheres por area de trabalho.
+
+Grande_banco_riasec %>% filter(ti_g_educa == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_gesta == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_userx == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_supma == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_dados == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_infra == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_desen == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+Grande_banco_riasec %>% filter(ti == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+# calculo da media de idade por area de trabalho.
+
+Grande_banco_riasec %>% filter(ti_g_educa == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_gesta == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_userx == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_supma == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_dados == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_infra == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti_g_desen == 1) %>% summarise(idade=mean(Idade),n=n()) %>% kable()
+
+Grande_banco_riasec %>% filter(ti == 0) %>% summarise(idade=mean(Idade),sd(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti == 0) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti == 0) %>% count() %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+
+Grande_banco_riasec %>% filter(ti == 1) %>% summarise(idade=mean(Idade),sd(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% filter(ti == 1) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% filter(ti == 1) %>% count() %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+Grande_banco_riasec %>% summarise(idade=mean(Idade),sd(Idade),n=n()) %>% kable()
+Grande_banco_riasec %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% count(`Estado civil`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% count(`Renda familiar aproximada`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+Grande_banco_riasec %>% count(`Estado onde residiu a maior parte da vida`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+Grande_banco_riasec %>% count() %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+options(max.print=4000) #op?ao para mostrar mais que 1000 resultados no console.
+
+# elimina??o de dados incorretos na vari?vel idade. Participantes colocaram a data de nascimento ao inves da idade.
+Grande_banco_riasec$Idade[Grande_banco_riasec$Idade==8121974] <- 46 
+Grande_banco_riasec$Idade[Grande_banco_riasec$Idade==24071981] <- 39
+
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'gênero fluído'] <- 'nbin'
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'não-binário'] <- 'nbin'
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'Não-binário'] <- 'nbin'
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'Não  Binário'] <- 'nbin'
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'Não binário'] <- 'nbin'
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'Não Binário'] <- 'nbin'
+Grande_banco_riasec$Sexo[Grande_banco_riasec$Sexo == 'masculino'] <- 'Masculino'
+
+names(Grande_banco_riasec)
+
+view(riasec_triades)
+
+# REGRESSOES POR CURSO ========================================================
+# Administração, Psicologia, Análise e Desenvolvimento de Sistemas (ADS), Psicologia e Gestão de Recursos Humanos.
+
+options(max.print=4000)
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(Curso = "Curso universitário")
+Grande_banco_riasec_2021$Curso <- Grande_banco_riasec_2021$"Curso universitário"
+Grande_banco_riasec_2021 <- Grande_banco_riasec
+count(Grande_banco_riasec_2021,Curso) %>% kable()
+view(Grande_banco_riasec_2021$Curso)
+unique(Grande_banco_riasec_2021$Curso) %>% kable
+names(Grande_banco_riasec_2021)
+
+net3$Curso[net3$Curso == 'Ciências Biológica'] <- 'Ciências Biológicas'
+net3$Curso[net3$Curso == 'Tecnologia da Fabricação Mecânica'] <- 'Gestão da Tecnologia da Informação'
+net3$Curso[net3$Curso == 'Técnologo em Informática para Negócios'] <- 'Informática para Negócios'
+net3$Curso[net3$Curso == "Tecnolgia em Geoprocessamento"] <-"Geoprocessamento"
+net3$Curso[net3$Curso == "Tecnologia"] <-"Tecnologia"
+net3$Curso[net3$Curso == "Tecnologia da Informação"] <-"Informação"
+net3$Curso[net3$Curso == "Tecnologia de Alimentos"] <-"Alimentos"
+net3$Curso[net3$Curso == "Tecnologia de Biocombustíveis"] <-"Biocombustíveis"
+net3$Curso[net3$Curso == "Tecnologia de Cosméticos"] <-"Cosméticos"
+net3$Curso[net3$Curso == "Tecnologia de Fabricação Mecânica"] <-'Fabricação Mecânica'
+net3$Curso[net3$Curso == "Tecnologia de Gestão de Recursos Humanos"] <-"Gestão de Recursos Humanos"
+net3$Curso[net3$Curso == "Tecnologia de Gestao Empresarial"] <-'Gestão Empresarial'
+net3$Curso[net3$Curso == "Tecnologia de Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Tecnologia de Manutenção Industrial"] <-"Manutenção Industrial"
+net3$Curso[net3$Curso == "Tecnologia de Recursos Humanos"] <-"Recursos Humanos"
+net3$Curso[net3$Curso == "Tecnologia de Sistemas para Internet"] <-"Sistemas para Internet"
+net3$Curso[net3$Curso == "Tecnologia de Soldagem"] <-"Soldagem"
+net3$Curso[net3$Curso == "Tecnologia do Agronegócio"] <-"Tecnologia do Agronegócio"
+net3$Curso[net3$Curso == "Tecnologia Eletrônica Automotiva"] <-"Tecnologia Eletrônica Automotiva"
+net3$Curso[net3$Curso == "Tecnologia em Agroindústria"] <-"Agroindústria"
+net3$Curso[net3$Curso == "Tecnologia em Agronegócio"] <-"Agronegócio"
+net3$Curso[net3$Curso == "Tecnologia em Análise e Desenvolvimento de Sistemas"] <-"Análise e Desenvolvimento de Sistemas" 
+net3$Curso[net3$Curso == "Tecnologia em Automação Industrial"] <-"Automação Industrial"
+net3$Curso[net3$Curso == "Tecnologia em Banco de Dados"] <-"Banco de Dados"
+net3$Curso[net3$Curso == "Tecnologia em Biocombustíveis"] <-"Biocombustíveis"
+net3$Curso[net3$Curso == "Tecnologia em Ciência de Dados"] <-"Ciência de Dados"
+net3$Curso[net3$Curso == "Tecnologia em Comércio Exterior"] <-"Comércio Exterior"
+net3$Curso[net3$Curso == "Tecnologia em Construção Civil - Edifícios"] <-"Construção Civil - Edifícios"
+net3$Curso[net3$Curso == "Tecnologia em Construção de Edificios"] <-"Construção Civil - Edifícios"
+net3$Curso[net3$Curso == "Tecnologia em Controle de Obras"] <-"Controle de Obras"
+net3$Curso[net3$Curso == "Tecnologia em Cosméticos"] <-"Cosméticos"
+net3$Curso[net3$Curso == "Tecnologia em Desenvolvimento de Jogos Digitais"] <-"Desenvolvimento de Jogos Digitais"
+net3$Curso[net3$Curso == "Tecnologia em Desenvolvimento de Produtos Plásticos"] <-"Desenvolvimento de Produtos Plásticos"
+net3$Curso[net3$Curso == "Tecnologia em Design de Moda"] <-"Design de Moda"
+net3$Curso[net3$Curso == "Tecnologia em Eletrônica Automotiva"] <-"Eletrônica Automotiva"
+net3$Curso[net3$Curso == "Tecnologia em Eletrônica Industrial"] <-"Eletrônica Industrial"
+net3$Curso[net3$Curso == "Tecnologia em Eventos"] <-"Eventos"
+net3$Curso[net3$Curso == "Tecnólogia em Eventos"] <-"Eventos"
+net3$Curso[net3$Curso == "Tecnologia em Fabricação Mecânica"] <-"Fabricação Mecânica"
+net3$Curso[net3$Curso == "Tecnologia em Gastronomia"] <-"Gastronomia"
+net3$Curso[net3$Curso == "Tecnologia em Gestão Ambiental"] <-"Gestão Ambiental"
+net3$Curso[net3$Curso == "Tecnologia em Gestão Comercial"] <-"Gestão Comercial"
+net3$Curso[net3$Curso == "Técnologia em Gestão da Informação"] <-"Gestão da Tecnologia da Informação"
+net3$Curso[net3$Curso == "Tecnologia em Gestão da Produção Industrial"] <-"Gestão da Produção Industrial"
+net3$Curso[net3$Curso == "Tecnologia em Gestão da Tecnologia da Informação"] <-"Gestão da Tecnologia da Informação"
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Agronegócio"] <-"Gestão de Agronegócio"
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Energia e Eficiência Energética"] <-"Gestão de Energia e Eficiência Energética"
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Negócios e Inovação"] <-"Gestão de Negócios e Inovação"
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Recursos Humanos"] <-"Gestão de Recursos Humanos"
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Tecnologia"] <-"Gestão de Tecnologia da Informação"
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Tecnologia da Informação"] <-'Gestão de Tecnologia da Informação'
+net3$Curso[net3$Curso == "Tecnologia em Gestão de Turismo"] <-'Gestão de Turismo'
+net3$Curso[net3$Curso == "Tecnologia em Gestão Empresarial"] <-"Gestão Empresarial"
+net3$Curso[net3$Curso == "Tecnologia Em Gestão Empresarial"] <-"Gestão Empresarial"
+net3$Curso[net3$Curso == "Tecnologia em Gestão Financeira"] <-'Gestão Financeira'
+net3$Curso[net3$Curso == "Tecnologia em Hidráulica e Saneamento Ambiental"] <-"Hidráulica e Saneamento Ambiental"
+net3$Curso[net3$Curso == "Tecnologia em Informática"] <-"Informática"
+net3$Curso[net3$Curso == "Tecnologia em Informática para Negócios"] <-"Informática para Negócios"
+net3$Curso[net3$Curso == "Tecnologia em Jogos digitais"] <-"Jogos digitais"
+net3$Curso[net3$Curso == "Tecnologia em Jogos Digitais"] <-"Jogos Digitais"
+net3$Curso[net3$Curso == "Tecnologia em Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Tecnologia em Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Tecnologia em Manufatura Avançada"] <-"Manufatura Avançada"
+net3$Curso[net3$Curso == "Tecnologia em Manutenção de Aeronaves"] <-"Manutenção de Aeronaves"
+net3$Curso[net3$Curso == "Tecnologia em Manutenção Industrial"] <-"Manutenção Industrial"
+net3$Curso[net3$Curso == "Tecnologia em Marketing"] <-"Marketing"
+net3$Curso[net3$Curso == "Tecnologia em Materiais"] <-"Materiais"
+net3$Curso[net3$Curso == "Tecnologia em Mecânica"] <-"Mecânica"
+net3$Curso[net3$Curso == "Tecnologia em Mecânica de Manutenção"] <-"Mecânica de Manutenção"
+net3$Curso[net3$Curso == "Tecnologia em Mecanização em Agricultura de Precisão"] <-"Mecanização em Agricultura de Precisão"
+net3$Curso[net3$Curso == "Tecnologia em Mecatrônica"] <-"Mecatrônica"
+net3$Curso[net3$Curso == "Tecnologia em Mecatrônica Industrial"] <-"Mecatrônica Industrial"
+net3$Curso[net3$Curso == "Tecnologia em Meio Ambiente e Recursos Hídricos"] <-"Meio Ambiente e Recursos Hídricos"
+net3$Curso[net3$Curso == "Tecnologia em Metalurgia"] <-"Metalurgia"
+net3$Curso[net3$Curso == "Tecnologia em Microeletrônica"] <-"Microeletrônica"
+net3$Curso[net3$Curso == "Tecnologia em Polímeros"] <-"Polímeros"
+net3$Curso[net3$Curso == "Tecnologia em Processamento de Dados"] <-"Processamento de Dados"
+net3$Curso[net3$Curso == "Tecnologia em Processos de Fabricação Mecânica"] <-"Processos de Fabricação Mecânica"
+net3$Curso[net3$Curso == "Tecnologia em Processos de Produção"] <-"Processos de Produção"
+net3$Curso[net3$Curso == "Tecnologia em Processos Gerenciais"] <-"Processos Gerenciais"
+net3$Curso[net3$Curso == "Tecnologia em Processos Metalúrgicos"] <-"Processos Metalúrgicos"
+net3$Curso[net3$Curso == "Tecnologia em Processos Químicos"] <-"Processos Químicos"
+net3$Curso[net3$Curso == "Tecnologia em Produção Agropecuária"] <-"Produção Agropecuária"
+net3$Curso[net3$Curso == "Tecnologia em Produção de Cosméticos"] <-'Produção de Cosméticos'
+net3$Curso[net3$Curso == "Tecnologia em Produção Industrial"] <-"Produção Industrial"
+net3$Curso[net3$Curso == "Tecnologia em Produção Têxtil"] <-"Produção Têxtil"
+net3$Curso[net3$Curso == "Tecnologia em Projeto de estruturas aeronáuticas"] <-"Projeto de Estruturas Aeronáuticas"
+net3$Curso[net3$Curso == "Tecnologia em Projetos de Estruturas Aeronáuticas"] <-"Projeto de Estruturas Aeronáuticas"
+net3$Curso[net3$Curso == "Tecnologia em Projetos Mecânicos"] <-'Projetos Mecânicos'
+net3$Curso[net3$Curso == "Tecnologia em Radiação"] <-"Radiação"
+net3$Curso[net3$Curso == "Tecnologia em Recuros Humanos"] <-"Recursos Humanos"
+net3$Curso[net3$Curso == "Tecnologia em Recursos Humanos"] <-"Recursos Humanos"
+net3$Curso[net3$Curso == "Tecnologia em Redes de Computadores"] <-"Redes de Computadores"
+net3$Curso[net3$Curso == "Tecnologia em Secretariado"] <-"Secretariado"
+net3$Curso[net3$Curso == "Tecnologia em Segurança da Informação"] <-'Segurança da Informação'
+net3$Curso[net3$Curso == "Tecnologia em Serviços de Saúde Hospitalar"] <-"Serviços de Saúde Hospitalar"
+net3$Curso[net3$Curso == "Tecnologia em Silvicultura"] <-"Silvicultura"
+net3$Curso[net3$Curso == "Tecnologia em Sistemas Biomédicos"] <-"Sistemas Biomédicos"
+net3$Curso[net3$Curso == "Tecnologia em Sistemas Embarcados"] <-'Sistemas Embarcados'
+net3$Curso[net3$Curso == "Tecnologia em Sistemas para Internet"] <-'Sistemas para Internet'
+net3$Curso[net3$Curso == "Tecnologia em Soldagem"] <-"Soldagem"
+net3$Curso[net3$Curso == "Tecnologia em Transporte Terrestre"] <-'Transporte Terrestre'
+net3$Curso[net3$Curso == "Tecnologia em Transportes Terrestres"] <-"Transporte Terrestre"
+net3$Curso[net3$Curso == "Tecnologia en Marketing"] <-"Marketing"
+net3$Curso[net3$Curso == "Tecnologia Gestão Ambiental"] <-"Gestão Ambiental"
+net3$Curso[net3$Curso == "Tecnologia Gestao Empresarial"] <-'Gestão Empresarial'
+net3$Curso[net3$Curso == "Tecnologia Mecânica"] <-"Mecânica"
+net3$Curso[net3$Curso == "Tecnologia na Construção de Edifícios"] <-"Construção de Edifícios"
+net3$Curso[net3$Curso == "Tecologia em Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Sistemas de Informação"] <-"Sistemas da Informação"
+net3$Curso[net3$Curso == "Informação"] <-"Gestão da Tecnologia da Informação"
+net3$Curso[net3$Curso == "Gestão de Tecnologia da Informação"] <-"Gestão da Tecnologia da Informação"
+net3$Curso[net3$Curso == "Gestão da Informação"] <-"Gestão da Tecnologia da Informação"
+net3$Curso[net3$Curso == "Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Técnico em Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Gestão de Serviçs"] <-"Gestão de Serviços"
+net3$Curso[net3$Curso == "Transportes Terrestres"] <-"Transporte Terrestre"
+net3$Curso[net3$Curso == "Gestão Recursos Humanos"] <-"Gestão de Recursos Humanos"
+net3$Curso[net3$Curso == "Gestão da produção Industrial"] <-"Gestão da Produção Industrial"
+net3$Curso[net3$Curso == "Projeto de Estruturas Aeronáuticas"] <-"Projetos de Estruturas Aeronáuticas"
+net3$Curso[net3$Curso == "Aquecimento, Ventilação e Ar Condicionado"] <-"Refrigeração, Ventilação e Ar Condicionado"
+net3$Curso[net3$Curso == "Construção Civil - Edifícios"] <-"Construção Civil - Edifícios"
+net3$Curso[net3$Curso == "Tecnologia em Construção Civil - Edifícios"] <-"Construção Civil - Edifícios"
+net3$Curso[net3$Curso == "Construção de Edifícios"] <-"Construção Civil - Edifícios"
+net3$Curso[net3$Curso == "Gestão em Logística"] <-"Logística"
+net3$Curso[net3$Curso == "|Gestão empresarial"] <-"|Gestão Empresarial"
+net3$Curso[net3$Curso == "Gestão Logística"] <-"Logística"
+net3$Curso[net3$Curso == "Jogos digitais"] <-"Jogos Digitais"
+net3$Curso[net3$Curso == "Gestão"] <-"Gestão"
+
+net3$Curso[net3$Curso == 'Administracao de Empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'Administraçao de Empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'Administracao de empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'Administração de Empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'ADMINISTRAÇÃO DE EMPRESAS'] <- 'adm'
+net3$Curso[net3$Curso == 'Administração geral'] <- 'adm'
+net3$Curso[net3$Curso == 'Administracao de Empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'Administracao de Empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'Administracao de Empresas'] <- 'adm'
+net3$Curso[net3$Curso == 'Administracao de Empresas'] <- 'adm'
+
+net3$Curso[net3$Curso == '\"Design com habilitação em Comunicação Visual\" e \"Gestão de Negócios e Inovação\"'] <- 'Design'
+net3$Curso[net3$Curso == '.'] <- NA
+net3$Curso[net3$Curso == 'Getão Empresarial'] <- 'Gestão Empresarial'
+net3$Curso[net3$Curso == '1- RH e 2-Eventos'] <- 'Recursos Humanos'
+net3$Curso[net3$Curso == '1°Direito - 2°Gestão Empresarial'] <- 'Direito'
+
+net3$Curso[net3$Curso == 'Adm de Empresas com Hab Analise de Sistemas'] <- 'adm_analise_de_sistemas'
+net3$Curso[net3$Curso == 'Adm de Empresas e Tecnologo Logistica'] <- 'adm'
+net3$Curso[net3$Curso == 'Administração - Comércio Exterior'] <- 'adm_comercio_exterior'
+net3$Curso[net3$Curso == 'Administração / Gestão da Produção Industrial'] <- 'adm'
+net3$Curso[net3$Curso == 'Administração com ênfase em Análise de Sistemas'] <- 'adm_analise_de_sistemas'
+net3$Curso[net3$Curso == 'Administração completo, Logística cursando'] <- 'adm'
+net3$Curso[net3$Curso == 'Administração de Banco de Dados'] <- 'adm_banco_de_dados'
+net3$Curso[net3$Curso == 'Administração de Empresas com Enfase em Analise de Sistemas'] <- 'adm_analise_de_sistemas'
+net3$Curso[net3$Curso == 'Administração de Empresas com ênfase em TI'] <- 'adm_tecnologia_da_informacao'
+net3$Curso[net3$Curso == 'Administração de empresas e cursando Biocombustiveis'] <- 'adm'
+net3$Curso[net3$Curso == 'Administração e Ciencias Contábeis'] <- 'adm'
+net3$Curso[net3$Curso == "adm_analise_de_sistemas"] <- "adm_as"
+
+#============================
+#============================
+
+net3$Curso[net3$Curso == "adm"] <- "admini"
+net3$Curso[net3$Curso == "adm_analise_de_sistemas"] <- "adm_as"
+net3$Curso[net3$Curso == "adm_banco_de_dados"] <- "adm_bs"
+net3$Curso[net3$Curso == "adm_comercio_exterior"] <- "adm_ce"
+net3$Curso[net3$Curso == "adm_tecnologia_da_informacao"] <- "adm_ti"
+net3$Curso[net3$Curso == "Administração / Gestão da Produção Industrial"] <- "admini"
+net3$Curso[net3$Curso == "Administração completo, Logística cursando"] <- "admini"
+net3$Curso[net3$Curso == "ADS"] <- "adsist"
+net3$Curso[net3$Curso == "AES Automação de Escritório e Secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Agronegocio"] <- "agrone"
+net3$Curso[net3$Curso == "Agronegócio"] <- "agrone"
+net3$Curso[net3$Curso == "Alimentos"] <- "alimen"
+net3$Curso[net3$Curso == "Analise de Processos Agroindustriais"] <- "apagro"
+net3$Curso[net3$Curso == "Análise de Processos Agroindustriais"] <- "apagro"
+net3$Curso[net3$Curso == "Análise de Sistemas econômico financeiro"] <- "as_efi"
+net3$Curso[net3$Curso == "Analise desenvolvimento de software"] <- "adsoft"
+net3$Curso[net3$Curso == "Analise desenvolvimento software"] <- "adsoft"
+net3$Curso[net3$Curso == "Analise e Desenvolvimento de software"] <- "adsoft"
+net3$Curso[net3$Curso == "Análise e Desenvolvimento de Software"] <- "adsoft"
+net3$Curso[net3$Curso == "Análise e Desenvolvimento de Softwares"] <- "adsoft"
+net3$Curso[net3$Curso == "Anhanguera"] <- "NA"
+net3$Curso[net3$Curso == "Anhanguera Educacional"] <- "NA"
+net3$Curso[net3$Curso == "arquitetura e urbanismo"] <- "arqurb"
+net3$Curso[net3$Curso == "Arquitetura e Urbanismo"] <- "arqurb"
+net3$Curso[net3$Curso == "Atualmente estudo logistica"] <- "logist"
+net3$Curso[net3$Curso == "Audiovisual"] <- "audio"
+net3$Curso[net3$Curso == "Automação de Escritorio e Secreatariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de escritório e secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de escritório e Secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de Escritório e secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de Escritório e Secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de escritórios e secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de escritórios e Secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "Automação de Escritórios e Secretariado"] <- "autsec"
+net3$Curso[net3$Curso == "automação e manufatura digital"] <- "autdig"
+net3$Curso[net3$Curso == "Automação e manufatura digital"] <- "autdig"
+net3$Curso[net3$Curso == "automação industrial"] <- "autind"
+net3$Curso[net3$Curso == "Automação industrial"] <- "autind"
+net3$Curso[net3$Curso == "Automação Industrial"] <- "autind"
+net3$Curso[net3$Curso == "Autotronica"] <- "autotr"
+net3$Curso[net3$Curso == "Auxiliar de enfermagem"] <- "auxenf"
+net3$Curso[net3$Curso == "Auxiliar de Enfermagem"] <- "auxenf"
+net3$Curso[net3$Curso == "Auxiliar e Técnico em Enfermagem"] <- "auxenf"
+net3$Curso[net3$Curso == "Auxiliar e tecno de enfermagem"] <- "auxenf"
+net3$Curso[net3$Curso == "Auxiliar/técnico em enfermagem"] <- "auxenf"
+net3$Curso[net3$Curso == "Bach em matemática"] <- "matema"
+net3$Curso[net3$Curso == "Bachareado e Licenciatura em Enfermahem - USP RP"] <- "enferm"
+net3$Curso[net3$Curso == "Bacharel em administração"] <- "admini"
+net3$Curso[net3$Curso == "Bacharel em Administração de Empresas"] <- "admini"
+net3$Curso[net3$Curso == "Bacharel em Análise de Sistemas"] <- "anasis"
+net3$Curso[net3$Curso == "Bacharel em Ciências Contábeis (formado)e cursando Gestão Empresarial"] <- "cconta"
+net3$Curso[net3$Curso == "Bacharel em Enfermagem"] <- "enferm"
+net3$Curso[net3$Curso == "Bacharel em física"] <- "fisica"
+net3$Curso[net3$Curso == "Bacharel em Física"] <- "fisica"
+net3$Curso[net3$Curso == "Bacharel em Teologia / Sistemas para Internet"] <- "sisint"
+net3$Curso[net3$Curso == "Bacharel em TI"] <- "sistin"
+net3$Curso[net3$Curso == "Bachárel em Turismo"] <- "turism"
+net3$Curso[net3$Curso == "Bacharelado de Ciência da Computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Bacharelado e Licenciatura em matemática"] <- "matema"
+net3$Curso[net3$Curso == "Bacharelado em Administração"] <- "admini"
+net3$Curso[net3$Curso == "Bacharelado em administração de empresas"] <- "admini"
+net3$Curso[net3$Curso == "Bacharelado em Administração de Empresas"] <- "admini"
+net3$Curso[net3$Curso == "Bacharelado em Ciência da Computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Bacharelado em Ciência de Dados"] <- "cidado"
+net3$Curso[net3$Curso == "Bacharelado em Ciências da Computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Bacharelado em Design"] <- "design"
+net3$Curso[net3$Curso == "Bacharelado em Educação física"] <- "edufis"
+net3$Curso[net3$Curso == "Bacharelado em física"] <- "fisica"
+net3$Curso[net3$Curso == "Bacharelado em Sistema de Informação"] <- "sisinf"
+net3$Curso[net3$Curso == "Bacharelado em Sistemas de Informação"] <- "sisinf"
+net3$Curso[net3$Curso == "Bacharelado em Sistemas de Informação e cursando Design de Produto"] <- "sisinf"
+net3$Curso[net3$Curso == "Bacharelado em Sistemas e Tecnologia da Informação"] <- "sistin"
+net3$Curso[net3$Curso == "Banco de dados"] <- "bandad"
+net3$Curso[net3$Curso == "Banco de Dados"] <- "bandad"
+net3$Curso[net3$Curso == "BANCO DE DADOS"] <- "bandad"
+net3$Curso[net3$Curso == "Big data no agronegócio"] <- "bigdat"
+net3$Curso[net3$Curso == "Big Data no Agronegócio"] <- "bigdat"
+net3$Curso[net3$Curso == "BIG DATA NO AGRONEGÓCIO"] <- "bigdat"
+net3$Curso[net3$Curso == "BIOCOMBUSTIVEIS"] <- "biocom"
+net3$Curso[net3$Curso == "biocombustíveis"] <- "biocom"
+net3$Curso[net3$Curso == "Biocombustíveis"] <- "biocom"
+net3$Curso[net3$Curso == "Biocombustível"] <- "biocom"
+net3$Curso[net3$Curso == "Biologia"] <- "biolog"
+net3$Curso[net3$Curso == "Biológia"] <- "biolog"
+net3$Curso[net3$Curso == "Biomedicina"] <- "biomed"
+net3$Curso[net3$Curso == "Biotecnologia"] <- "biotec"
+net3$Curso[net3$Curso == "C.C. Edifícios"] <- "edific"
+net3$Curso[net3$Curso == "C0NSTRUÇÃO CIVIL - EDIFICIOS"] <- "edific"
+net3$Curso[net3$Curso == "Ciencia da  computacao"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciencia da Computaçao"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciencia da Computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciência da computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciência da Computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciencia de Dados"] <- "cidado"
+net3$Curso[net3$Curso == "CIENCIA DE DADOS"] <- "cidado"
+net3$Curso[net3$Curso == "ciência de Dados"] <- "cidado"
+net3$Curso[net3$Curso == "Ciência de dados"] <- "cidado"
+net3$Curso[net3$Curso == "Ciência de Dados"] <- "cidado"
+net3$Curso[net3$Curso == "Ciências atuariais"] <- "ciatua"
+net3$Curso[net3$Curso == "Ciencias Biologicas"] <- "biolog"
+net3$Curso[net3$Curso == "ciências biológicas"] <- "biolog"
+net3$Curso[net3$Curso == "Ciências Biológicas"] <- "biolog"
+net3$Curso[net3$Curso == "Ciências contábeis"] <- "cconta"
+net3$Curso[net3$Curso == "Ciências Contábeis"] <- "cconta"
+net3$Curso[net3$Curso == "Ciências Contábeis / Análise e Desenvolvimento de Sistemas"] <- "cconta"
+net3$Curso[net3$Curso == "Ciências contábeis/ Análise e desenvolvimento de sistemas"] <- "cconta"
+net3$Curso[net3$Curso == "CIENCIAS DA COMPUTAÇÃO"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciências da computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciências da Computação"] <- "cicomp"
+net3$Curso[net3$Curso == "Ciências de Dados"] <- "cidado"
+net3$Curso[net3$Curso == "Ciências Econômicas"] <- "econom"
+net3$Curso[net3$Curso == "Ciências Econômicas / Análise e Desenvolvimento de Sistemas"] <- "econom"
+net3$Curso[net3$Curso == "Ciências Sociais"] <- "ciesoc"
+net3$Curso[net3$Curso == "Comércio  Exterior"] <- "comext"
+net3$Curso[net3$Curso == "comercio exerior"] <- "comext"
+net3$Curso[net3$Curso == "Comercio Exterior"] <- "comext"
+net3$Curso[net3$Curso == "comércio exterior"] <- "comext"
+net3$Curso[net3$Curso == "Comércio exterior"] <- "comext"
+net3$Curso[net3$Curso == "Comércio Exterior"] <- "comext"
+net3$Curso[net3$Curso == "COMÉRCIO EXTERIOR"] <- "comext"
+net3$Curso[net3$Curso == "comex"] <- "comext"
+net3$Curso[net3$Curso == "Comex"] <- "comext"
+net3$Curso[net3$Curso == "Comunicação"] <- "comsoc"
+net3$Curso[net3$Curso == "Comunicacao Social"] <- "comsoc"
+net3$Curso[net3$Curso == "Comunicação Social"] <- "comsoc"
+net3$Curso[net3$Curso == "Comunicação Social - Jornalismo"] <- "comsoc"
+net3$Curso[net3$Curso == "Comunicação Social - Publicidade e propaganda"] <- "comsoc"
+net3$Curso[net3$Curso == "Comunicação Social com habilitação para Publicidade e Propaganda"] <- "comsoc"
+net3$Curso[net3$Curso == "Comunicação Social: Midialogia"] <- "comsoc"
+net3$Curso[net3$Curso == "Construção Civil-edificios"] <- "edific"
+net3$Curso[net3$Curso == "Construção civil-edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção Civil-edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção civil - Edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção Civil - Edifícios"] <- "edific"
+net3$Curso[net3$Curso == "CONSTRUÇÃO CIVIL - EDIFÍCIOS"] <- "edific"
+net3$Curso[net3$Curso == "Construção civil - edifícios e Engenharia civil"] <- "edific"
+net3$Curso[net3$Curso == "Construção civil - Modalidade Edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção civil edificios"] <- "edific"
+net3$Curso[net3$Curso == "Construção civil edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção Civil Edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção Civil, EDIFÍCIOS"] <- "edific"
+net3$Curso[net3$Curso == "Construção de Edificios"] <- "edific"
+net3$Curso[net3$Curso == "Construção de edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Construção Naval"] <- "connav"
+net3$Curso[net3$Curso == "contabilidade, direito, informatica"] <- "cconta"
+net3$Curso[net3$Curso == "Controle de obras"] <- "conobr"
+net3$Curso[net3$Curso == "Controle de Obras"] <- "conobr"
+net3$Curso[net3$Curso == "CONTROLE DE OBRAS"] <- "conobr"
+net3$Curso[net3$Curso == "Cosmeticos"] <- "cosmet"
+net3$Curso[net3$Curso == "Cosméticos"] <- "cosmet"
+net3$Curso[net3$Curso == "Cosmetologia"] <- "cosmet"
+net3$Curso[net3$Curso == "CST em Jogos Digitais"] <- "jogdig"
+net3$Curso[net3$Curso == "CST GESTÃO DE RECURSOS HUMANOS"] <- "gesrhu"
+net3$Curso[net3$Curso == "Curso de tecnologia em Gestão de Energia e Eficiencia Energética"] <- "geseen"
+net3$Curso[net3$Curso == "Curso de Tecnologia em Marketing"] <- "market"
+net3$Curso[net3$Curso == "Curso superior de cosméticos"] <- "cosmet"
+net3$Curso[net3$Curso == "Curso superior de tecnologia em Gestão da produção industrial"] <- "prodin"
+net3$Curso[net3$Curso == "Curso Superior de Tecnologia em Jogos Digitais"] <- "jogdig"
+net3$Curso[net3$Curso == "Curso Superior de Tecnologia em Marketing"] <- "market"
+net3$Curso[net3$Curso == "Curso Superior de Tecnologia em Redes de Computadores"] <- "redcom"
+net3$Curso[net3$Curso == "Curso Superior de Tecnologia em Secretariado"] <- "secret"
+net3$Curso[net3$Curso == "Curso Superior de Tecnologia Mecânica - Modalidade Processos de Produção"] <- "mecani"
+net3$Curso[net3$Curso == "Curso Superior em Tecnologia de Banco de Dados"] <- "bandad"
+net3$Curso[net3$Curso == "Curso superior em tecnologia de Cosméticos"] <- "cosmet"
+net3$Curso[net3$Curso == "Curso Superior Tecnológico em Gestão de Recursos Humanos"] <- "gesrhu"
+net3$Curso[net3$Curso == "Curso tecnológico em Logística"] <- "logist"
+net3$Curso[net3$Curso == "Curso tecnólogo de Gestão de Recursos Humanos"] <- "gesrhu"
+net3$Curso[net3$Curso == "Curso tecnólogo em Eventos"] <- "evento"
+net3$Curso[net3$Curso == "Desenvolvimento de produto plastico"] <- "dprpla"
+net3$Curso[net3$Curso == "Desenvolvimento de produto plástico"] <- "dprpla"
+net3$Curso[net3$Curso == "Desenvolvimento de Produtos Plasticos"] <- "dprpla"
+net3$Curso[net3$Curso == "Desenvolvimento de Produtos Plásticos"] <- "dprpla"
+net3$Curso[net3$Curso == "Desenvolvimento de Sistema"] <- "adsist"
+net3$Curso[net3$Curso == "Desenvolvimento de Sistemas"] <- "adsist"
+net3$Curso[net3$Curso == "design"] <- "design"
+net3$Curso[net3$Curso == "Design"] <- "design"
+net3$Curso[net3$Curso == "Design de Jogos Digitais"] <- "design"
+net3$Curso[net3$Curso == "Design de mídias digitais"] <- "design"
+net3$Curso[net3$Curso == "Design de Mídias Digitais"] <- "design"
+net3$Curso[net3$Curso == "Design de produto"] <- "design"
+net3$Curso[net3$Curso == "Design de Produto com enfase em processos de fabricação"] <- "design"
+net3$Curso[net3$Curso == "Design de Produto com ênfase em produção e industrialização"] <- "design"
+net3$Curso[net3$Curso == "Design de Produtos"] <- "design"
+net3$Curso[net3$Curso == "Design de produtos com ênfase em processos de produção e industrialização"] <- "design"
+net3$Curso[net3$Curso == "Design de Produtos com enfase na produção"] <- "design"
+net3$Curso[net3$Curso == "Design gráfico"] <- "design"
+net3$Curso[net3$Curso == "Designer de interiores e Cursando Gestão financeira"] <- "design"
+net3$Curso[net3$Curso == "Direito"] <- "direit"
+net3$Curso[net3$Curso == "DIREITO"] <- "direit"
+net3$Curso[net3$Curso == "Direito e Gestão Comercial"] <- "direit"
+net3$Curso[net3$Curso == "Direito e Marketing"] <- "direit"
+net3$Curso[net3$Curso == "Direito e Tecnólogo em Banco de Dados"] <- "direit"
+net3$Curso[net3$Curso == "DPP- Desenvolvimento de Produtos Plásticos"] <- "dprpla"
+net3$Curso[net3$Curso == "Economia"] <- "econom"
+net3$Curso[net3$Curso == "Ed. Física"] <- "edufis"
+net3$Curso[net3$Curso == "Edifícios"] <- "edific"
+net3$Curso[net3$Curso == "Editoração - Comunicação social"] <- "comsoc"
+net3$Curso[net3$Curso == "Educação Física"] <- "edufis"
+net3$Curso[net3$Curso == "Eletrônica - modalidade automação industrial"] <- "eleaut"
+net3$Curso[net3$Curso == "Eletrônica automotiva"] <- "eleaut"
+net3$Curso[net3$Curso == "Eletrônica Automotiva"] <- "eleaut"
+net3$Curso[net3$Curso == "Eletrônica Industrial"] <- "eleind"
+net3$Curso[net3$Curso == "Enfermagem"] <- "enferm"
+net3$Curso[net3$Curso == "ENFERMAGEM"] <- "enferm"
+net3$Curso[net3$Curso == "Eng de produção e gestão de serviço"] <- "engpro"
+net3$Curso[net3$Curso == "Eng. Telecomunicações"] <- "engtel"
+net3$Curso[net3$Curso == "engenharia"] <- "engenh"
+net3$Curso[net3$Curso == "Engenharia"] <- "engenh"
+net3$Curso[net3$Curso == "ENGENHARIA"] <- "engenh"
+net3$Curso[net3$Curso == "Engenharia Agronômica"] <- "engagr"
+net3$Curso[net3$Curso == "Engenharia ambiental"] <- "engamb"
+net3$Curso[net3$Curso == "Engenharia civil"] <- "engciv"
+net3$Curso[net3$Curso == "Engenharia Civil"] <- "engciv"
+net3$Curso[net3$Curso == "ENGENHARIA CIVIL"] <- "engciv"
+net3$Curso[net3$Curso == "Engenharia Civil \ Edifícios"] <- "engciv"
+net3$Curso[net3$Curso == "Engenharia Civil e ADS"] <- "engciv"
+net3$Curso[net3$Curso == "engenharia da computação"] <- "engcom"
+net3$Curso[net3$Curso == "Engenharia da Computação"] <- "engcom"
+net3$Curso[net3$Curso == "Engenharia da Cumputação"] <- "engcom"
+net3$Curso[net3$Curso == "Engenharia de alimentos"] <- "engali"
+net3$Curso[net3$Curso == "Engenharia de Alimentos"] <- "engali"
+net3$Curso[net3$Curso == "Engenharia de computação"] <- "engcom"
+net3$Curso[net3$Curso == "Engenharia de Computação"] <- "engcom"
+net3$Curso[net3$Curso == "Engenharia de Controle e Automacao"] <- "engcau"
+net3$Curso[net3$Curso == "Engenharia de controle e automação"] <- "engcau"
+net3$Curso[net3$Curso == "Engenharia de Controle e Automação"] <- "engcau"
+net3$Curso[net3$Curso == "Engenharia de instrumentação, automação e robótica"] <- "engcau"
+net3$Curso[net3$Curso == "Engenharia de produção"] <- "engpro"
+net3$Curso[net3$Curso == "Engenharia de Produção"] <- "engpro"
+net3$Curso[net3$Curso == "ENGENHARIA DE PRODUÇÃO"] <- "engpro"
+net3$Curso[net3$Curso == "Engenharia de Produção Mecânica"] <- "engpro"
+net3$Curso[net3$Curso == "Engenharia de produção, Logística"] <- "engpro"
+net3$Curso[net3$Curso == "Engenharia de Produção/Analise e Desenvolvimento de Sistemas"] <- "engpro"
+net3$Curso[net3$Curso == "Engenharia elétrica"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica-modalidade Eletrônica e Ciências da Computação"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica habilitação em Eletrônica"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica módulo  eletronica"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica, ênfase Eletrônica"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica, Engenharia de Software e Biologia"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica, Telecomunicações"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Elétrica/Eletrônica"] <- "engele"
+net3$Curso[net3$Curso == "Engenharia Eletricidade, modalidade Eletrônica"] <- "engelt"
+net3$Curso[net3$Curso == "Engenharia Eletronica"] <- "engelt"
+net3$Curso[net3$Curso == "Engenharia eletrônica"] <- "engelt"
+net3$Curso[net3$Curso == "Engenharia Eletrônica"] <- "engelt"
+net3$Curso[net3$Curso == "Engenharia Eletrônica opção Sistemas Digitais"] <- "engelt"
+net3$Curso[net3$Curso == "Engenharia mecanica"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia Mecanica"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia mecânica"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia Mecânica"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia Mecânica / Licenciatura em Física / Mestrado em Física Aplicada"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia Mecânica e Projetos Mecânicos"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia Mecatrônica"] <- "engmec"
+net3$Curso[net3$Curso == "Engenharia Naval"] <- "engnav"
+net3$Curso[net3$Curso == "Engenharia Quimica"] <- "engqui"
+net3$Curso[net3$Curso == "Engenharia Química"] <- "engqui"
+net3$Curso[net3$Curso == "Engenharia Química e ADS"] <- "engqui"
+net3$Curso[net3$Curso == "Engenharia química em bacharel"] <- "engqui"
+net3$Curso[net3$Curso == "Engenharua de producao"] <- "engpro"
+net3$Curso[net3$Curso == "Especialização em Data Science"] <- "cidado"
+net3$Curso[net3$Curso == "Estatística"] <- "estati"
+net3$Curso[net3$Curso == "Estatístico"] <- "estati"
+net3$Curso[net3$Curso == "Estudei administração de empresas e agora estou cursando na Fatec Gestão em Recursos Humanos"] <- "admini"
+net3$Curso[net3$Curso == "Estudo sociais , pedagogia, engenharia de petróleo, redes lógicas ."] <- "estsoc"
+net3$Curso[net3$Curso == "eventos"] <- "evento"
+net3$Curso[net3$Curso == "Eventos"] <- "evento"
+net3$Curso[net3$Curso == "Fabricaçao mecanica"] <- "fabmec"
+net3$Curso[net3$Curso == "Fabricação mecânica"] <- "fabmec"
+net3$Curso[net3$Curso == "Fabricação Mecânica"] <- "fabmec"
+net3$Curso[net3$Curso == "Faculdade de Ciências Farmacêuticas de Ribeirão Preto"] <- "farmac"
+net3$Curso[net3$Curso == "Faculdade de Economia São Luís - SP"] <- "econom"
+net3$Curso[net3$Curso == "Faculdade de Tecnologia de Itaquaquecetuba"] <- "tecnol"
+net3$Curso[net3$Curso == "Farmacia"] <- "farmac"
+net3$Curso[net3$Curso == "Farmácia"] <- "farmac"
+net3$Curso[net3$Curso == "farmácia-bioquímica"] <- "farbio"
+net3$Curso[net3$Curso == "Farmácia-Bioquímica"] <- "farbio"
+net3$Curso[net3$Curso == "Farmácia - Bacharelado"] <- "farmac"
+net3$Curso[net3$Curso == "farmácia bioquímica"] <- "farbio"
+net3$Curso[net3$Curso == "farmácia Bioquímica"] <- "farbio"
+net3$Curso[net3$Curso == "Farmácia e Bioquímica especialidade em Alimentos"] <- "farbio"
+net3$Curso[net3$Curso == "Fatec"] <- "tecnol"
+net3$Curso[net3$Curso == "Fatec Barueri"] <- "tecnol"
+net3$Curso[net3$Curso == "Fatec Bauru - Automação Industrial"] <- "tecnol"
+net3$Curso[net3$Curso == "Fatec de Itaquera"] <- "tecnol"
+net3$Curso[net3$Curso == "Fatec Jogos Digitais"] <- "tecnol"
+net3$Curso[net3$Curso == "Fatec mogi mirim - análise e desenvolvimento de sistemas"] <- "densit"
+net3$Curso[net3$Curso == "Fatec Pompéia tecnólogo em Big data no agronegócio"] <- "bigdat"
+net3$Curso[net3$Curso == "Fatec são Roque"] <- "tecnol"
+net3$Curso[net3$Curso == "Fatec zona Leste"] <- "tecnol"
+net3$Curso[net3$Curso == "FATEC/ETEC"] <- "tecnol"
+net3$Curso[net3$Curso == "FCL-Assis"] <- "letras"
+net3$Curso[net3$Curso == "Filosofia, atualmente estudo tecnólogo em Gestão Empresarial"] <- "filoso"
+net3$Curso[net3$Curso == "fisioterapia"] <- "fisiot"
+net3$Curso[net3$Curso == "Fisioterapia"] <- "fisiot"
+net3$Curso[net3$Curso == "FIZ ENG AMBIENTAL E FAÇO TECNOGIA EM EDIFICIOS"] <- "engamb"
+net3$Curso[net3$Curso == "Funep campus 2"] <- "ciesau"
+net3$Curso[net3$Curso == "Geoprocessamento"] <- "geopro"
+net3$Curso[net3$Curso == "Gerenciamento de redes"] <- "gerred"
+net3$Curso[net3$Curso == "Gestá da Produção Industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão  Comercial"] <- "gescom"
+net3$Curso[net3$Curso == "Gestão ambiental"] <- "ges_am"
+net3$Curso[net3$Curso == "Gestão Ambiental"] <- "ges_am"
+net3$Curso[net3$Curso == "Gestao Comercial"] <- "gescom"
+net3$Curso[net3$Curso == "gestão comercial"] <- "gescom"
+net3$Curso[net3$Curso == "Gestão comercial"] <- "gescom"
+net3$Curso[net3$Curso == "Gestão Comercial"] <- "gescom"
+net3$Curso[net3$Curso == "Gestão comercial Fatec Assis"] <- "gescom"
+net3$Curso[net3$Curso == "Gestão da produção"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestao da produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestao da Produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestao da Produção Industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "gestão da produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão da produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão da Produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão da Produção Industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão da Produção Industrial e Gestão de Recursos Humanos"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestao da qualidade"] <- "gesqua"
+net3$Curso[net3$Curso == "Gestão da qualidade"] <- "gesqua"
+net3$Curso[net3$Curso == "Gestão da Qualidade"] <- "gesqua"
+net3$Curso[net3$Curso == "GESTÃO DA QUALIDADE"] <- "gesqua"
+net3$Curso[net3$Curso == "Gestao da Tecnologia da Informacao"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestao da tecnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão da tecnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão da Tecnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão da Tecnologia da Informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "GESTÃO DA TECNOLOGIA DA INFORMAÇÃO"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão da tecnologia da Informação e Engenharia da Computação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão da Tecnologia da Informação."] <- "ges_ti"
+net3$Curso[net3$Curso == "GESTAO DA TECNOLOGIA DA TECNOLOGA DA INFORMACAO"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão da tecnologia em eventos"] <- "geseve"
+net3$Curso[net3$Curso == "Gestão de Agronegócio"] <- "ges_ag"
+net3$Curso[net3$Curso == "Gestão de Comércio Exterior"] <- "gescom"
+net3$Curso[net3$Curso == "Gestao de eficiencis energética"] <- "gesene"
+net3$Curso[net3$Curso == "Gestao De Energia E Eficiência Energética"] <- "gesene"
+net3$Curso[net3$Curso == "gestão de energia e eficiência energética"] <- "gesene"
+net3$Curso[net3$Curso == "Gestão de Energia e Eficiência Energética"] <- "gesene"
+net3$Curso[net3$Curso == "Gestão de Eventos"] <- "geseve"
+net3$Curso[net3$Curso == "Gestão de Meio Ambiente e Recursos Hídricos"] <- "ges_am"
+net3$Curso[net3$Curso == "Gestão de Negócio e inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de Negócio e Inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestao de Negócios e Inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "gestão de negócios e inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de negócios e inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de negócios e Inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de Negócios e Inovação"] <- "gesneg"
+net3$Curso[net3$Curso == "GESTÃO DE NEGÓCIOS E INOVAÇÃO"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de negócios e inovações"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de Negócios e Inovações"] <- "gesneg"
+net3$Curso[net3$Curso == "Gestão de negócios inovação"] <- "gesino"
+net3$Curso[net3$Curso == "gestão de políticas públicas"] <- "gespol"
+net3$Curso[net3$Curso == "Gestão de produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão de Produção Industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão de Produção Industrial (cursando)"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão de Recursos Humanos"] <- "ges_rh"
+net3$Curso[net3$Curso == "Gestão de servicos"] <- "gesser"
+net3$Curso[net3$Curso == "Gestão de serviços"] <- "gesser"
+net3$Curso[net3$Curso == "Gestão de Serviços"] <- "gesser"
+net3$Curso[net3$Curso == "Gestão de Serviços -Fatec Indaiatuba"] <- "gesser"
+net3$Curso[net3$Curso == "Gestão de T.I"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão de tecnologia"] <- "gestec"
+net3$Curso[net3$Curso == "Gestao de Tecnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestao de Tecnologia da Informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão de tecnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão de TI"] <- "ges_ti"
+net3$Curso[net3$Curso == "gestao de turismo"] <- "ges_tu"
+net3$Curso[net3$Curso == "gestão de turismo"] <- "ges_tu"
+net3$Curso[net3$Curso == "Gestão de turismo"] <- "ges_tu"
+net3$Curso[net3$Curso == "Gestão de Turismo"] <- "ges_tu"
+net3$Curso[net3$Curso == "Gestão do Agronegócio"] <- "ges_ag"
+net3$Curso[net3$Curso == "Gestão do Agronegócios"] <- "ges_ag"
+net3$Curso[net3$Curso == "Gestao e Inovação"] <- "gesino"
+net3$Curso[net3$Curso == "Gestão em Ageonegócio"] <- "gesage"
+net3$Curso[net3$Curso == "Gestão em Energia e eficiência energética"] <- "gesene"
+net3$Curso[net3$Curso == "Gestão em Energia e Eficiência energética"] <- "gesene"
+net3$Curso[net3$Curso == "Gestão em petróleo e gas natural"] <- "gestep"
+net3$Curso[net3$Curso == "Gestão em tecnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão em Tecnologia da Informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "GESTÃO EM TECNOLOGIA DA INFORMAÇÃO"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão em Técnologia da informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão em tecnologia da informação / tecnologia em jogos digitais"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão em tecnologia da produção industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão em TI"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão em Turismo"] <- "ges_tu"
+net3$Curso[net3$Curso == "Gestao empresarial"] <- "ges_em"
+net3$Curso[net3$Curso == "gestão empresarial"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão empresarial"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão Empresarial"] <- "ges_em"
+net3$Curso[net3$Curso == "GESTÃO EMPRESARIAL"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão Empresárial"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão empresarial - logística"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão Empresarial / Logística"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão Empresarial Atual, finalizado Quimica Bacharelado"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão Empresarial e Gestão Ambiental"] <- "ges_em"
+net3$Curso[net3$Curso == "Gestão empresarial."] <- "ges_em"
+net3$Curso[net3$Curso == "gestão empresaril"] <- "ges_em"
+net3$Curso[net3$Curso == "gestao financeira"] <- "ges_fi"
+net3$Curso[net3$Curso == "Gestao financeira"] <- "ges_fi"
+net3$Curso[net3$Curso == "Gestão financeira"] <- "ges_fi"
+net3$Curso[net3$Curso == "Gestão Financeira"] <- "ges_fi"
+net3$Curso[net3$Curso == "Gestão logística / agora cursando Comércio exterior"] <- "ges_lo"
+net3$Curso[net3$Curso == "Gestao Portuária"] <- "ges_po"
+net3$Curso[net3$Curso == "Gestão Portuaria"] <- "ges_po"
+net3$Curso[net3$Curso == "Gestão portuária"] <- "ges_po"
+net3$Curso[net3$Curso == "Gestão Portuária"] <- "ges_po"
+net3$Curso[net3$Curso == "Gestão Produção Industrial"] <- "ges_in"
+net3$Curso[net3$Curso == "Gestão pública"] <- "ges_pu"
+net3$Curso[net3$Curso == "Gestão T.I."] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão Tecnologia da Informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão Tecnologia informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Gestão tecnológica em logística"] <- "gestec"
+net3$Curso[net3$Curso == "Gestão Universitário"] <- "ges_un"
+net3$Curso[net3$Curso == "Gesto da Tecnologia da Informação"] <- "ges_ti"
+net3$Curso[net3$Curso == "Global Trading gestão negócios e econômia"] <- "gesneg"
+net3$Curso[net3$Curso == "GPI"] <- "ges_in"
+net3$Curso[net3$Curso == "Graduação em logística."] <- "ges_lo"
+net3$Curso[net3$Curso == "GTI"] <- "ges_ti"
+net3$Curso[net3$Curso == "Hidraulica e Saneamento Ambiental"] <- "hidsam"
+net3$Curso[net3$Curso == "Hidráulica e saneamento ambiental"] <- "hidsam"
+net3$Curso[net3$Curso == "Hidráulica e saneamento Ambiental"] <- "hidsam"
+net3$Curso[net3$Curso == "Hidráulica e Saneamento Ambiental"] <- "hidsam"
+net3$Curso[net3$Curso == "hidraulica e saneamento ambinetal"] <- "hidsam"
+net3$Curso[net3$Curso == "Hidraulica e sanemento"] <- "hidsam"
+net3$Curso[net3$Curso == "História"] <- "histor"
+net3$Curso[net3$Curso == "História e Automação de Esc e Secret"] <- "histor"
+net3$Curso[net3$Curso == "História e Crítica da Arte"] <- "histor"
+net3$Curso[net3$Curso == "História/quimica"] <- "histor"
+net3$Curso[net3$Curso == "Hotelaria"] <- "hotela"
+net3$Curso[net3$Curso == "HVAC"] <- "s_hvac"
+net3$Curso[net3$Curso == "Informatica cim enfase em gestao"] <- "infges"
+net3$Curso[net3$Curso == "Informática com ênfase em Banco de Dados"] <- "infbda"
+net3$Curso[net3$Curso == "Informatica para gestao de negocios"] <- "infges"
+net3$Curso[net3$Curso == "Informática para gestão de negócios"] <- "infges"
+net3$Curso[net3$Curso == "Informática para Gestão de Negócios"] <- "infges"
+net3$Curso[net3$Curso == "Informática para Internet"] <- "infint"
+net3$Curso[net3$Curso == "Informatica para negocios"] <- "infneg"
+net3$Curso[net3$Curso == "Informatica para Negocios"] <- "infneg"
+net3$Curso[net3$Curso == "Informatica para negócios"] <- "infneg"
+net3$Curso[net3$Curso == "Informática para negócios"] <- "infneg"
+net3$Curso[net3$Curso == "Informática para Negócios"] <- "infneg"
+net3$Curso[net3$Curso == "INFORMÁTICA PARA NEGÓCIOS"] <- "infneg"
+net3$Curso[net3$Curso == "Instalação elétrica"] <- "insele"
+net3$Curso[net3$Curso == "Instalações Elétricas"] <- "insele"
+net3$Curso[net3$Curso == "Jogoa Digitais"] <- "jogdig"
+net3$Curso[net3$Curso == "jogos digitais"] <- "jogdig"
+net3$Curso[net3$Curso == "Jogos Digitais"] <- "jogdig"
+net3$Curso[net3$Curso == "JOGOS DIGITAIS"] <- "jogdig"
+net3$Curso[net3$Curso == "Jogos Digitais Noturno"] <- "jogdig"
+net3$Curso[net3$Curso == "jogos digitas"] <- "jogdig"
+net3$Curso[net3$Curso == "Jornalismo"] <- "jornal"
+net3$Curso[net3$Curso == "Jornalismo, Letras e Pedagogia"] <- "jornal"
+net3$Curso[net3$Curso == "letras"] <- "letras"
+net3$Curso[net3$Curso == "Letras"] <- "letras"
+net3$Curso[net3$Curso == "Letras - Tradutor"] <- "letras"
+net3$Curso[net3$Curso == "Letras e Contabilidade"] <- "letras"
+net3$Curso[net3$Curso == "Letras e Pedagogia"] <- "letras"
+net3$Curso[net3$Curso == "Letras Português/Inglês da Faculdade de Filosofia, Letras e Ciências Humanas"] <- "letras"
+net3$Curso[net3$Curso == "LIC. EM MATEMÁTICA"] <- "li_mat"
+net3$Curso[net3$Curso == "Licenciatura da Computação"] <- "li_com"
+net3$Curso[net3$Curso == "Licenciatura em Artes Visuais"] <- "li_avi"
+net3$Curso[net3$Curso == "Licenciatura em Computação"] <- "li_com"
+net3$Curso[net3$Curso == "Licenciatura em física"] <- "li_fis"
+net3$Curso[net3$Curso == "Licenciatura em Física"] <- "li_fis"
+net3$Curso[net3$Curso == "Licenciatura em Geografia"] <- "li_geo"
+net3$Curso[net3$Curso == "Licenciatura em matemática"] <- "li_mat"
+net3$Curso[net3$Curso == "Licenciatura em Matemática"] <- "li_mat"
+net3$Curso[net3$Curso == "Licenciatura em Pedagogia"] <- "li_ped"
+net3$Curso[net3$Curso == "Licenciatura em Química"] <- "li_qui"
+net3$Curso[net3$Curso == "Licenciatura Plena em Matemática"] <- "li_mat"
+net3$Curso[net3$Curso == "Logísitca"] <- "logist"
+net3$Curso[net3$Curso == "logistica"] <- "logist"
+net3$Curso[net3$Curso == "Logistica"] <- "logist"
+net3$Curso[net3$Curso == "LOGISTICA"] <- "logist"
+net3$Curso[net3$Curso == "logística"] <- "logist"
+net3$Curso[net3$Curso == "Logística"] <- "logist"
+net3$Curso[net3$Curso == "LOGÍSTICA"] <- "logist"
+net3$Curso[net3$Curso == "Logística / Engenharia Química"] <- "logist"
+net3$Curso[net3$Curso == "Logística 3º Ciclo"] <- "logist"
+net3$Curso[net3$Curso == "Logistica aeroportuaria"] <- "logaer"
+net3$Curso[net3$Curso == "logistica aeroportuária"] <- "logaer"
+net3$Curso[net3$Curso == "Logística aeroportuária"] <- "logaer"
+net3$Curso[net3$Curso == "Logística Aeroportuária"] <- "logaer"
+net3$Curso[net3$Curso == "LOGÍSTICA AEROPORTUÁRIA"] <- "logaer"
+net3$Curso[net3$Curso == "Logística Atualmente"] <- "logist"
+net3$Curso[net3$Curso == "Logística e Construção de Edifícios"] <- "logist"
+net3$Curso[net3$Curso == "Logística na Fatec e Farmácia na Universidade São Francisco"] <- "logist"
+net3$Curso[net3$Curso == "Logística."] <- "logist"
+net3$Curso[net3$Curso == "Logo"] <- "NA"
+net3$Curso[net3$Curso == "Mantenção Industrial"] <- "manind"
+net3$Curso[net3$Curso == "Manufatura Avançada"] <- "manufa"
+net3$Curso[net3$Curso == "Manutenção de aeronaves"] <- "manaer"
+net3$Curso[net3$Curso == "Manutenção de Aeronaves"] <- "manaer"
+net3$Curso[net3$Curso == "Manutenção industrial"] <- "manind"
+net3$Curso[net3$Curso == "Manutenção Industrial"] <- "manind"
+net3$Curso[net3$Curso == "Marketing"] <- "mrktin"
+net3$Curso[net3$Curso == "Marketing e Logística"] <- "mrktin"
+net3$Curso[net3$Curso == "Markw6"] <- "mrktin"
+net3$Curso[net3$Curso == "Matemática"] <- "li_mat"
+net3$Curso[net3$Curso == "Matemática e Bacharelado em informatica"] <- "li_mat"
+net3$Curso[net3$Curso == "Materiais, processos e componentes eletrônicos"] <- "matpel"
+net3$Curso[net3$Curso == "me formei em Ciencias Biológicas/ atualmente estudo Ciencia de Dados"] <- "biolog"
+net3$Curso[net3$Curso == "Mecânica- Processo de Soldagem"] <- "me_sol"
+net3$Curso[net3$Curso == "Mecânica- Processos de Produção"] <- "me_prd"
+net3$Curso[net3$Curso == "MECANICA - ENFASE EM PROJETOS"] <- "me_prj"
+net3$Curso[net3$Curso == "Mecânica - Modalidade Projetos"] <- "me_prj"
+net3$Curso[net3$Curso == "Mecanica - processo de produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mecânica - Processos de Produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mêcanica - Processos Produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mecânica - Projetos"] <- "me_prj"
+net3$Curso[net3$Curso == "mecânica de precisão"] <- "me_prc"
+net3$Curso[net3$Curso == "Mecânica de precisão"] <- "me_prc"
+net3$Curso[net3$Curso == "Mecânica de Precisão"] <- "me_prc"
+net3$Curso[net3$Curso == "Mecânica de precisão e Engenharia civil"] <- "me_prc"
+net3$Curso[net3$Curso == "Mecânica de Processos de Produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mecânica de projetos"] <- "me_prj"
+net3$Curso[net3$Curso == "Mecânica industrial"] <- "me_ind"
+net3$Curso[net3$Curso == "Mecânica Processo de Soldagem"] <- "me_sol"
+net3$Curso[net3$Curso == "Mecanica processos de producao"] <- "me_prd"
+net3$Curso[net3$Curso == "mecânica processos de produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mecânica processos de produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mecânica Processos de Produção"] <- "me_prd"
+net3$Curso[net3$Curso == "Mecanica processos de soldagem"] <- "me_sol"
+net3$Curso[net3$Curso == "Mecânica projetos"] <- "me_prj"
+net3$Curso[net3$Curso == "Mecanização Agricultura de Precisão"] <- "me_agr"
+net3$Curso[net3$Curso == "Mecanização em agricultura de precisão"] <- "me_agr"
+net3$Curso[net3$Curso == "Mecanização em Agricultura de Precisão"] <- "me_agr"
+net3$Curso[net3$Curso == "Mecatrônica"] <- "mecatr"
+net3$Curso[net3$Curso == "mecatronica industrial"] <- "mecatr"
+net3$Curso[net3$Curso == "Mecatronica industrial"] <- "mecatr"
+net3$Curso[net3$Curso == "Mecatrônica industrial"] <- "mecatr"
+net3$Curso[net3$Curso == "Mecatrônica Industrial"] <- "mecatr"
+net3$Curso[net3$Curso == "Mecatrônica Industrial na Fatec Mogi Mirim"] <- "mecatr"
+net3$Curso[net3$Curso == "Medicina"] <- "medici"
+net3$Curso[net3$Curso == "Medicina Veterinária"] <- "medvet"
+net3$Curso[net3$Curso == "Meio Ambiente"] <- "meambi"
+net3$Curso[net3$Curso == "meio ambiente e recursos hidricos"] <- "m_rchi"
+net3$Curso[net3$Curso == "Meio Ambiente e Recursos Hidricos"] <- "m_rchi"
+net3$Curso[net3$Curso == "Meio ambiente e recursos hídricos"] <- "m_rchi"
+net3$Curso[net3$Curso == "Meio Ambiente e Recursos Hídricos"] <- "m_rchi"
+net3$Curso[net3$Curso == "MESTRADO EM ADMINISTRAÇÃO"] <- "admini"
+net3$Curso[net3$Curso == "Mestrado em Engenharia de Producao"] <- "engpro"
+net3$Curso[net3$Curso == "Mestrado em nutrição"] <- "nutric"
+net3$Curso[net3$Curso == "Microeletronica"] <- "micele"
+net3$Curso[net3$Curso == "Microeletrônica"] <- "micele"
+net3$Curso[net3$Curso == "Midialogia"] <- "midial"
+net3$Curso[net3$Curso == "Movimentação de Terra e Pavimentação"] <- "m_tepa"
+net3$Curso[net3$Curso == "movimento de terra e pavimentação"] <- "m_tepa"
+net3$Curso[net3$Curso == "Movimento de terra e pavimentação"] <- "m_tepa"
+net3$Curso[net3$Curso == "n/a"] <- "NA"
+net3$Curso[net3$Curso == "Não"] <- "NA"
+net3$Curso[net3$Curso == "nao fiz"] <- "NA"
+net3$Curso[net3$Curso == "não fiz antes"] <- "NA"
+net3$Curso[net3$Curso == "Nao fiz cursinho"] <- "NA"
+net3$Curso[net3$Curso == "Nutrição"] <- "nutric"
+net3$Curso[net3$Curso == "Odontologia"] <- "odonto"
+net3$Curso[net3$Curso == "PEA"] <- "NA"
+net3$Curso[net3$Curso == "Pedagogia"] <- "pedago"
+net3$Curso[net3$Curso == "Pedagogia licenciatura"] <- "pedago"
+net3$Curso[net3$Curso == "Pisicologia"] <- "psicol"
+net3$Curso[net3$Curso == "PLAGEDER"] <- "NA"
+net3$Curso[net3$Curso == "Polimeros"] <- "polime"
+net3$Curso[net3$Curso == "Polímeros"] <- "polime"
+net3$Curso[net3$Curso == "Processamento de dados"] <- "prodad"
+net3$Curso[net3$Curso == "Processamento de Dados"] <- "prodad"
+net3$Curso[net3$Curso == "PROCESSAMENTO DE DADOS"] <- "prodad"
+net3$Curso[net3$Curso == "Processamento de Dados Fatec"] <- "prodad"
+net3$Curso[net3$Curso == "Processamento de Dados, Análise e Desenvolvimento de Sistemas e Jornalismo"] <- "prodad"
+net3$Curso[net3$Curso == "Processo de produção"] <- "propro"
+net3$Curso[net3$Curso == "Processo de produção - Mecânica"] <- "propro"
+net3$Curso[net3$Curso == "Processo de produção mecânica"] <- "propro"
+net3$Curso[net3$Curso == "Processos de fabricação mecânica"] <- "propro"
+net3$Curso[net3$Curso == "Processos de Produçao"] <- "propro"
+net3$Curso[net3$Curso == "Processos de Produção"] <- "propro"
+net3$Curso[net3$Curso == "Processos Gerenciais"] <- "proger"
+net3$Curso[net3$Curso == "Processos metalúrgicos"] <- "promet"
+net3$Curso[net3$Curso == "Processos Metalúrgicos"] <- "promet"
+net3$Curso[net3$Curso == "Processos quimicos"] <- "proqui"
+net3$Curso[net3$Curso == "Processos químicos"] <- "proqui"
+net3$Curso[net3$Curso == "Processos Químicos"] <- "proqui"
+net3$Curso[net3$Curso == "Produção Agropecuária"] <- "proagr"
+net3$Curso[net3$Curso == "Producao fonografica"] <- "profon"
+net3$Curso[net3$Curso == "Produção Fonografica"] <- "profon"
+net3$Curso[net3$Curso == "Produção Fonográfica"] <- "profon"
+net3$Curso[net3$Curso == "Producao industrial"] <- "proind"
+net3$Curso[net3$Curso == "Produção industrial"] <- "proind"
+net3$Curso[net3$Curso == "Produção Industrial"] <- "proind"
+net3$Curso[net3$Curso == "PRODUÇÃO INDUSTRIAL"] <- "proind"
+net3$Curso[net3$Curso == "Produção Multimídia"] <- "promul"
+net3$Curso[net3$Curso == "Produção Têxtil"] <- "protex"
+net3$Curso[net3$Curso == "Projeto Mecânico"] <- "promec"
+net3$Curso[net3$Curso == "PROJETOS"] <- "projet"
+net3$Curso[net3$Curso == "Projetos - Mecânica"] <- "promec"
+net3$Curso[net3$Curso == "projetos - mecanicos"] <- "promec"
+net3$Curso[net3$Curso == "Projetos de Estruturas aeronauticas"] <- "proaer"
+net3$Curso[net3$Curso == "Projetos de Estruturas Aeronauticas"] <- "proaer"
+net3$Curso[net3$Curso == "Projetos de estruturas aeronáuticas"] <- "proaer"
+net3$Curso[net3$Curso == "Projetos de Estruturas Aeronáuticas"] <- "proaer"
+net3$Curso[net3$Curso == "Projetos Mecânica"] <- "promec"
+net3$Curso[net3$Curso == "Projetos Mecânico"] <- "promec"
+net3$Curso[net3$Curso == "Projetos Mecanicoa"] <- "promec"
+net3$Curso[net3$Curso == "projetos mecanicos"] <- "promec"
+net3$Curso[net3$Curso == "Projetos mecanicos"] <- "promec"
+net3$Curso[net3$Curso == "Projetos mecânicos"] <- "promec"
+net3$Curso[net3$Curso == "Projetos Mecânicos"] <- "promec"
+net3$Curso[net3$Curso == "PROJETOS MECÂNICOS"] <- "promec"
+net3$Curso[net3$Curso == "Protejo de estrutura aeronáutica"] <- "proaer"
+net3$Curso[net3$Curso == "Psicologia"] <- "psicol"
+net3$Curso[net3$Curso == "Psicologia  / Gestão Empresarial"] <- "psicol"
+net3$Curso[net3$Curso == "Psicologia e Gestão Empresarial"] <- "psicol"
+net3$Curso[net3$Curso == "Publicidade e propaganda"] <- "pubpro"
+net3$Curso[net3$Curso == "Publicidade e Propaganda"] <- "pubpro"
+net3$Curso[net3$Curso == "PUC - SP"] <- "NA"
+net3$Curso[net3$Curso == "quimica"] <- "quimic"
+net3$Curso[net3$Curso == "Química"] <- "quimic"
+net3$Curso[net3$Curso == "Radiação"] <- "radiac"
+net3$Curso[net3$Curso == "Recursos Humanos"] <- "rechum"
+net3$Curso[net3$Curso == "Rede de computadores"] <- "redcom"
+net3$Curso[net3$Curso == "redes de computadores"] <- "redcom"
+net3$Curso[net3$Curso == "Redes de computadores"] <- "redcom"
+net3$Curso[net3$Curso == "Redes de Computadores"] <- "redcom"
+net3$Curso[net3$Curso == "REDES DE COMPUTADORES"] <- "redcom"
+net3$Curso[net3$Curso == "Redes de computadores FATEC"] <- "redcom"
+net3$Curso[net3$Curso == "Refrigeração, Ventilação e ar-condicionado"] <- "reveac"
+net3$Curso[net3$Curso == "Refrigeração, Ventilação e Ar Condicionado"] <- "revear"
+net3$Curso[net3$Curso == "Relações Internacionais"] <- "relint"
+net3$Curso[net3$Curso == "Relações Públicas"] <- "relpub"
+net3$Curso[net3$Curso == "Revac"] <- "reveac"
+net3$Curso[net3$Curso == "REVAC- REFRIGERAÇÃO VENTILAÇÃO E CIRCULAÇÃO DE AR"] <- "reveac"
+net3$Curso[net3$Curso == "Saúde Pública"] <- "saupub"
+net3$Curso[net3$Curso == "Secretariado"] <- "secret"
+net3$Curso[net3$Curso == "SECRETARIADO"] <- "secret"
+net3$Curso[net3$Curso == "Secretariado Executivo Bilíngue"] <- "secret"
+net3$Curso[net3$Curso == "Segurança da aviação e aeronavegabilidade continua"] <- "segavi"
+net3$Curso[net3$Curso == "Segurança da Infomação"] <- "seginf"
+net3$Curso[net3$Curso == "Seguranca da informacao"] <- "seginf"
+net3$Curso[net3$Curso == "Segurança da informaçao"] <- "seginf"
+net3$Curso[net3$Curso == "Segurança da informação"] <- "seginf"
+net3$Curso[net3$Curso == "Segurança da Informação"] <- "seginf"
+net3$Curso[net3$Curso == "SEGURANÇA DA INFORMAÇÃO"] <- "seginf"
+net3$Curso[net3$Curso == "SEGURANÇA DA INFORMAÇÃO / CIÊNCIA DA COMPUTAÇÃO"] <- "seginf"
+net3$Curso[net3$Curso == "Segurança da Tecnologia da Informação"] <- "seginf"
+net3$Curso[net3$Curso == "Segurança em Tecnologia da Informação"] <- "seginf"
+net3$Curso[net3$Curso == "Sem resposta"] <- "NA"
+net3$Curso[net3$Curso == "SENAI, ETEC Júlio de Mesquita e ETEC José Rocha Mendes"] <- "NA"
+net3$Curso[net3$Curso == "Serviço Social"] <- "sersoc"
+net3$Curso[net3$Curso == "Silvicultura"] <- "silvic"
+net3$Curso[net3$Curso == "Sist. Biomédicos"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistema de informação"] <- "sisinf"
+net3$Curso[net3$Curso == "Sistema de Informação"] <- "sisinf"
+net3$Curso[net3$Curso == "Sistema de informação / Logistica"] <- "sisinf"
+net3$Curso[net3$Curso == "Sistema para internet"] <- "sisint"
+net3$Curso[net3$Curso == "SISTEMA PARA INTERNET"] <- "sisint"
+net3$Curso[net3$Curso == "sistemas biomedicos"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistemas biomedicos"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistemas Biomedicos"] <- "sisbio"
+net3$Curso[net3$Curso == "sistemas biomédicos"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistemas biomédicos"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistemas Biomédicos"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistemas biomédicos e medicina veterinária"] <- "sisbio"
+net3$Curso[net3$Curso == "Sistemas da Informação"] <- "sisinf"
+net3$Curso[net3$Curso == "Sistemas de informação"] <- "sisinf"
+net3$Curso[net3$Curso == "Sistemas Embarcados"] <- "sisemb"
+net3$Curso[net3$Curso == "sistemas navais"] <- "sisnav"
+net3$Curso[net3$Curso == "sistemas para internet"] <- "sisint"
+net3$Curso[net3$Curso == "Sistemas para internet"] <- "sisint"
+net3$Curso[net3$Curso == "Sistemas para Internet"] <- "sisint"
+net3$Curso[net3$Curso == "Sistemas Para Internet"] <- "sisint"
+net3$Curso[net3$Curso == "Soldagem"] <- "soldag"
+net3$Curso[net3$Curso == "Sou bacharel e licenciada em Ciências Biológicas"] <- "biolog"
+net3$Curso[net3$Curso == "Superior de Tecnologia em Hidráulica e Saneamento Ambiental"] <- "techid"
+net3$Curso[net3$Curso == "Superior em Tecnologia de Logística"] <- "teclog"
+net3$Curso[net3$Curso == "Superior em Tecnologia em Logística"] <- "teclog"
+net3$Curso[net3$Curso == "Superior em Tecnologia em Processamento de Dados"] <- "tecdad"
+net3$Curso[net3$Curso == "Téc em Enfermagem incompleto."] <- "tecenf"
+net3$Curso[net3$Curso == "Téc em Seg da Informação"] <- "tecsif"
+net3$Curso[net3$Curso == "Tec. em Sistemas de Informação"] <- "tecsdi"
+net3$Curso[net3$Curso == "Tecbologia em cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Técnico de enfermagem"] <- "tecenf"
+net3$Curso[net3$Curso == "Tecnico e auxiliar de enfermagem"] <- "tecenf"
+net3$Curso[net3$Curso == "Técnico em enfermagem"] <- "tecenf"
+net3$Curso[net3$Curso == "Tecnico em Gestão de Serviços"] <- "tecgds"
+net3$Curso[net3$Curso == "Técnico em Segurança da Informação"] <- "tecsif"
+net3$Curso[net3$Curso == "Técnico Mecânico - ETEC Jorge Street"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnlogia da Informação"] <- "tecinf"
+net3$Curso[net3$Curso == "Tecnlogo em Logistica"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnogia em Manutenção industrial"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnolo mecatronico"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnóloga em Biocombustiveis"] <- "tecbio"
+net3$Curso[net3$Curso == "Tecnologia  em Informática con ênfase em Gestão da Produção  Industrial"] <- "tecinf"
+net3$Curso[net3$Curso == "Tecnología  logística Aeroportuária"] <- "tecaep"
+net3$Curso[net3$Curso == "Tecnologia da construção civil - edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnologia da Construção Civil - Edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnologia da Construção Civil - Movimentação de terra e pavimentação"] <- "teccvl"
+net3$Curso[net3$Curso == "tecnologia da fabricação mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia da Gestão da Informação"] <- "tecinf"
+net3$Curso[net3$Curso == "tecnologia da informação"] <- "tecinf"
+net3$Curso[net3$Curso == "Tecnologia da informação"] <- "tecinf"
+net3$Curso[net3$Curso == "Tecnologia da Informação para Gestão de Negócios"] <- "tecinf"
+net3$Curso[net3$Curso == "Tecnologia de alimentos."] <- "tecali"
+net3$Curso[net3$Curso == "Tecnologia de automação industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "TECNOLOGIA DE BIOCOMBUSTIVEIS"] <- "tecbio"
+net3$Curso[net3$Curso == "Tecnologia de biocombustíveis"] <- "tecbio"
+net3$Curso[net3$Curso == "Tecnologia de cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnologia de soldagem"] <- "tecsol"
+net3$Curso[net3$Curso == "Tecnologia do agronegocio"] <- "tecagr"
+net3$Curso[net3$Curso == "Tecnologia dos Cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnologia e gestão em Recursos Humanos"] <- "tecrhs"
+net3$Curso[net3$Curso == "Tecnologia Eletrônica automotiva"] <- "tecaut"
+net3$Curso[net3$Curso == "Tecnologia em agroindústria"] <- "tecagr"
+net3$Curso[net3$Curso == "tecnologia em agronegocio"] <- "tecagr"
+net3$Curso[net3$Curso == "Tecnologia em agronegócio"] <- "tecagr"
+net3$Curso[net3$Curso == "TECNOLOGIA EM AGRONEGÓCIO"] <- "tecagr"
+net3$Curso[net3$Curso == "Tecnologia em alimentos"] <- "tecali"
+net3$Curso[net3$Curso == "Tecnologia em Alimentos"] <- "tecali"
+net3$Curso[net3$Curso == "Tecnologia em Automação  Industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "Tecnologia em automação industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "Tecnologia em automação Industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "tecnologia em Banco de Dados"] <- "tecbdd"
+net3$Curso[net3$Curso == "Tecnologia em banco de dados"] <- "tecbdd"
+net3$Curso[net3$Curso == "Tecnologia em bancos de dados"] <- "tecbdd"
+net3$Curso[net3$Curso == "Tecnologia em Biocombustiveis"] <- "tecbio"
+net3$Curso[net3$Curso == "Tecnologia em biocombustíveis"] <- "tecbio"
+net3$Curso[net3$Curso == "Tecnologia em Comercio Exterior"] <- "teccex"
+net3$Curso[net3$Curso == "Tecnologia em comércio exterior"] <- "teccex"
+net3$Curso[net3$Curso == "Tecnologia em Construção civil - Edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "TECNOLOGIA EM CONSTRUÇÃO DE EDIFICIOS"] <- "tecced"
+net3$Curso[net3$Curso == "Tecnologia em construção de edifícios"] <- "tecced"
+net3$Curso[net3$Curso == "Tecnologia em construção de Edifícios"] <- "tecced"
+net3$Curso[net3$Curso == "Tecnologia em Construção de Edifícios"] <- "tecced"
+net3$Curso[net3$Curso == "Tecnologia em controle de obras"] <- "teccob"
+net3$Curso[net3$Curso == "Tecnologia em Controle de obras"] <- "teccob"
+net3$Curso[net3$Curso == "Tecnologia em Cosmeticos"] <- "teccos"
+net3$Curso[net3$Curso == "tecnologia em cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnologia em cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnologia em desenvolvimento de produtos plásticos"] <- "tecdpp"
+net3$Curso[net3$Curso == "Tecnologia em eventos"] <- "teceve"
+net3$Curso[net3$Curso == "tecnologia em fabricação mecânica"] <- "tecfmc"
+net3$Curso[net3$Curso == "Tecnologia em fabricação mecânica"] <- "tecfmc"
+net3$Curso[net3$Curso == "Tecnologia em Fabricação mecânica"] <- "tecfmc"
+net3$Curso[net3$Curso == "Tecnologia em febricação mecânica"] <- "tecfmc"
+net3$Curso[net3$Curso == "Tecnologia em gastronomia"] <- "tecgat"
+net3$Curso[net3$Curso == "Técnologia em Geoprocessamento"] <- "tecgeo"
+net3$Curso[net3$Curso == "Técnologia em gestão da informação"] <- "tecgst"
+net3$Curso[net3$Curso == "TECNOLOGIA EM GESTÃO DE NEGÓCIOS E INOVAÇÃO"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologia em gestão de turismo"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologia em Gestão do Turismo e Marketing"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologia em Gestão em Agronegócios"] <- "tecgst"
+net3$Curso[net3$Curso == "TECNOLOGIA EM GESTÃO EMPREARIAL"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologia em gestão empresarial"] <- "tecgst"
+net3$Curso[net3$Curso == "tecnologia em hidráulica e saneamento ambiental"] <- "techsa"
+net3$Curso[net3$Curso == "Tecnologia em hidráulica e saneamento ambiental"] <- "techsa"
+net3$Curso[net3$Curso == "Tecnologia em Informatica para Negocios"] <- "tecing"
+net3$Curso[net3$Curso == "tecnologia em informática para negócios"] <- "tecing"
+net3$Curso[net3$Curso == "TECNOLOGIA EM INFORMÁTICA PARA NEGÓCIOS"] <- "tecing"
+net3$Curso[net3$Curso == "Tecnologia em jogos digitais"] <- "tecjog"
+net3$Curso[net3$Curso == "tecnologia em logistica"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em logistica"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em Logistica"] <- "teclog"
+net3$Curso[net3$Curso == "TECNOLOGIA EM LOGISTICA"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em logística"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em logistica e Gestao Empresarial"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em Logística e Gestão Empresarial"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em Logística Fatec/sjc"] <- "teclog"
+net3$Curso[net3$Curso == "técnologia em logísticas"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologia em manufatura avançada"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnologia em Manutençao de aeronaves"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnologia em manutenção de aeronaves"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnologia em manutenção industrial"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnologia em marketing"] <- "tecmkt"
+net3$Curso[net3$Curso == "técnologia em marketing"] <- "tecmkt"
+net3$Curso[net3$Curso == "Tecnologia em materiais"] <- "tecmat"
+net3$Curso[net3$Curso == "Tecnologia em Mecânica - Processos de Produção"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia em mecânica automobilistica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia em Mecânica Automobilística"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia em mecânica de precisão"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia em Mecânica de Precisão"] <- "tecmec"
+net3$Curso[net3$Curso == "tecnologia em mecatrônica industrial"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnologia em mecatrônica industrial"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnologia em Meio Ambiente e Recursos Hidricos"] <- "tecmrh"
+net3$Curso[net3$Curso == "tecnologia em polimeros"] <- "tecpol"
+net3$Curso[net3$Curso == "Tecnologia em processamento de dados"] <- "tecpdd"
+net3$Curso[net3$Curso == "tecnologia em processos de produção"] <- "tecpdp"
+net3$Curso[net3$Curso == "Tecnologia em processos de produção"] <- "tecpdp"
+net3$Curso[net3$Curso == "Tecnologia em processos fabricação mecanica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia em processos metalúrgicos"] <- "tecmet"
+net3$Curso[net3$Curso == "Tecnologia em produção de Cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnologia ém Redes de Computadores e Banco de Dados"] <- "tecban"
+net3$Curso[net3$Curso == "Tecnologia em segurança da informação"] <- "tecsif"
+net3$Curso[net3$Curso == "Tecnologia em Sistema para internet"] <- "tecsis"
+net3$Curso[net3$Curso == "Tecnologia em sistemas embarcados"] <- "tecsis"
+net3$Curso[net3$Curso == "Tecnologia em Sistemas Para Internet"] <- "tecsis"
+net3$Curso[net3$Curso == "Tecnologia em soldagem"] <- "tecsol"
+net3$Curso[net3$Curso == "Tecnologia em transporte terrestre"] <- "tecttr"
+net3$Curso[net3$Curso == "Tecnologia em transporte Terrestre"] <- "tecttr"
+net3$Curso[net3$Curso == "Tecnologia Fabricação Mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia Manutenção Industrial"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnologia Mecânica- Modalidade processos de Produção."] <- "tecmec"
+net3$Curso[net3$Curso == "tecnologia mecânica-processos de soldagem"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia mecânica - modalidade projetos"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia Mecânica - Processos de Produção"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia Mecânica - Processos de Soldagem"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia Mecânica modalidade projetos"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnologia na construção de Edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnologia Superior em Recuros Humanos"] <- "tecsrh"
+net3$Curso[net3$Curso == "Tecnologia wm construção civil modalidade Edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnologias em Análise e Desenvolvimento de Sistemas"] <- "tecads"
+net3$Curso[net3$Curso == "Tecnologias em Redes de Computadores"] <- "tecred"
+net3$Curso[net3$Curso == "Tecnológico em Logística"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnólogo - Mecânica Processos de Produção"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo  em Mecanico de Manutenção"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo agronegócio"] <- "tecagr"
+net3$Curso[net3$Curso == "tecnologo construcao de edficios e tecnologo em gestao empresarial"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnólogo de Análise e Desenvolvimento de Sistema"] <- "tecdds"
+net3$Curso[net3$Curso == "Tecnólogo de construção civil"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnólogo de Eventos"] <- "teceve"
+net3$Curso[net3$Curso == "Tecnologo de manutenção industrial"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnologo em agronegócio"] <- "tecagr"
+net3$Curso[net3$Curso == "Tecnologo em Agronegócio"] <- "tecagr"
+net3$Curso[net3$Curso == "Tecnólogo em agronegócio"] <- "tecagr"
+net3$Curso[net3$Curso == "Tecnólogo em Alimentos"] <- "tecali"
+net3$Curso[net3$Curso == "Tecnologo em analise e desenvolvimento de sistemas"] <- "tecdds"
+net3$Curso[net3$Curso == "Tecnologo em Analise e Desenvolvimento de Sistemas"] <- "tecdds"
+net3$Curso[net3$Curso == "Tecnólogo em Análise e Desenvolvimento de Sistemas"] <- "tecdds"
+net3$Curso[net3$Curso == "Tecnólogo em Análise e Desenvolvimento de Sistemas - Coding"] <- "tecdds"
+net3$Curso[net3$Curso == "Tecnólogo em automação industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "Tecnólogo em Automação industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "Tecnólogo em Automação Industrial"] <- "tecaut"
+net3$Curso[net3$Curso == "Tecnólogo em Banco de Dados"] <- "tecbdd"
+net3$Curso[net3$Curso == "Tecnologo em biocombustiveis"] <- "tecbio"
+net3$Curso[net3$Curso == "Tecnólogo em Comercio Exterior"] <- "teccxt"
+net3$Curso[net3$Curso == "Tecnólogo em comércio exterior"] <- "teccxt"
+net3$Curso[net3$Curso == "Tecnólogo em Comércio exterior"] <- "teccxt"
+net3$Curso[net3$Curso == "Tecnólogo em Comércio Exterior"] <- "teccxt"
+net3$Curso[net3$Curso == "Tecnólogo em Construção Civil modalidade Edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnólogo em Construção de Edifícios"] <- "teccvl"
+net3$Curso[net3$Curso == "Tecnólogo em cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Técnologo em cosméticos"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnólogo em cosméticos."] <- "teccos"
+net3$Curso[net3$Curso == "Tecnologo em Cosmetologia"] <- "teccos"
+net3$Curso[net3$Curso == "Tecnólogo em Desenvolvimento de Jogos Digitais"] <- "tecjog"
+net3$Curso[net3$Curso == "Tecnólogo em designer de moda"] <- "tecddm"
+net3$Curso[net3$Curso == "Tecnólogo em Eletrônica Industrial"] <- "teceid"
+net3$Curso[net3$Curso == "Tecnologo em eventis"] <- "teceve"
+net3$Curso[net3$Curso == "Tecnólogo em eventos"] <- "teceve"
+net3$Curso[net3$Curso == "Tecnólogo em Eventos"] <- "teceve"
+net3$Curso[net3$Curso == "Tecnólogo em fabricação Mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo em Fabricação mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo em Fabricação Mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Técnologo em Fabricação Mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão Ambiental"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão Comercial"] <- "tecgst"
+net3$Curso[net3$Curso == "TECNÓLOGO EM GESTÃO DA PRODUÇÃO INDUSTRIAL"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão de Recursos Humanos"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologo em Gestão de Tecnologia"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão de Tecnologia da Informação"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologo em Gestão de TI"] <- "tecgst"
+net3$Curso[net3$Curso == "tecnólogo em gestão empresarial"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em gestão empresarial"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão Empresarial"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão Empresarial / Tecnólogo em Gestão da Tecnologia da Informação"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Gestão Financeira"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnólogo em Hidráulica e Saneamento Ambiental e Licenciatura em Pedagogia"] <- "techsa"
+net3$Curso[net3$Curso == "Tecnólogo em Informática"] <- "tecinf"
+net3$Curso[net3$Curso == "Tecnólogo em Jogos digitais"] <- "tecjog"
+net3$Curso[net3$Curso == "Tecnólogo em Jogos Digitais"] <- "tecjog"
+net3$Curso[net3$Curso == "Tecnologo em logistica"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologo em Logistica"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologo em logística"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnologo em Logística"] <- "teclog"
+net3$Curso[net3$Curso == "tecnólogo em logística"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnólogo em logística"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnólogo em Logística"] <- "teclog"
+net3$Curso[net3$Curso == "Tecnólogo em manutenção industrial"] <- "tecman"
+net3$Curso[net3$Curso == "Tecnólogo em Marketing"] <- "tecmkt"
+net3$Curso[net3$Curso == "Tecnólogo em Mecânica"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo em mecânica com ênfase em projeto de máquinas"] <- "tecmec"
+net3$Curso[net3$Curso == "Tecnólogo em mecatrônica"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnólogo em mecatrônica industrial"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnólogo em Mecatrônica Industrial"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnólogo em Metalurgia"] <- "tecmet"
+net3$Curso[net3$Curso == "Tecnólogo em Polímeros"] <- "tecpol"
+net3$Curso[net3$Curso == "Tecnólogo em Polímeros em andamento"] <- "tecpol"
+net3$Curso[net3$Curso == "Tecnologo em Processamento de Dados"] <- "tecpdd"
+net3$Curso[net3$Curso == "Tecnólogo em Processamento de Dados"] <- "tecpdd"
+net3$Curso[net3$Curso == "TECNÓLOGO EM PROCESSAMENTO DE DADOS"] <- "tecpdd"
+net3$Curso[net3$Curso == "Tecnologo em projeto de estruturas de aeronaves"] <- "tecpea"
+net3$Curso[net3$Curso == "Tecnólogo em Projetos de Estruturas Aeronáuticas"] <- "tecpea"
+net3$Curso[net3$Curso == "tecnólogo em segurança da informação"] <- "tecsif"
+net3$Curso[net3$Curso == "Tecnólogo em segurança da informação"] <- "tecsif"
+net3$Curso[net3$Curso == "Tecnólogo em Segurança da Informação"] <- "tecsif"
+net3$Curso[net3$Curso == "Tecnólogo em Segurança da Informação e Tecnólogo em Gestão Empresarial"] <- "tecsif"
+net3$Curso[net3$Curso == "Tecnólogo em serviços de saúde e hospitalar"] <- "tecssh"
+net3$Curso[net3$Curso == "Tecnologo em Sistemas Biomedicos"] <- "tecsbi"
+net3$Curso[net3$Curso == "Tecnologo em sistemas para internet"] <- "tecsis"
+net3$Curso[net3$Curso == "Tecnólogo em Soldagem"] <- "tecsol"
+net3$Curso[net3$Curso == "Tecnólogo em Transportes Terrestres"] <- "tecttr"
+net3$Curso[net3$Curso == "Tecnólogo en Marketing"] <- "tecmkt"
+net3$Curso[net3$Curso == "Tecnólogo Gestão Ambiental"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologo Gestao Empresarial"] <- "tecgst"
+net3$Curso[net3$Curso == "Tecnologo mecânico - projeto"] <- "tecmec"
+net3$Curso[net3$Curso == "Técnologo Mecatrônica Industrial"] <- "tecmti"
+net3$Curso[net3$Curso == "Tecnologo polimeros"] <- "tecpol"
+net3$Curso[net3$Curso == "Tecnologoa em Análise e Desenvolvimento de Sistemas"] <- "tecads"
+net3$Curso[net3$Curso == "Tenologia em Processamento de Dados"] <- "tecpdd"
+net3$Curso[net3$Curso == "têxtil e moda"] <- "txtmod"
+net3$Curso[net3$Curso == "Têxtil e moda"] <- "txtmod"
+net3$Curso[net3$Curso == "Têxtil e Moda"] <- "txtmod"
+net3$Curso[net3$Curso == "TI"] <- "tecinf"
+net3$Curso[net3$Curso == "TI com ênfase em banco de dados"] <- "tecbdd"
+net3$Curso[net3$Curso == "transporte terrestre"] <- "tecttr"
+net3$Curso[net3$Curso == "Transporte Terrestre"] <- "tecttr"
+net3$Curso[net3$Curso == "TRANSPORTE TERRESTRE"] <- "tecttr"
+net3$Curso[net3$Curso == "Transporte terrestre e mobilidade urbana"] <- "tecttr"
+net3$Curso[net3$Curso == "TSI - Tecnologia em Sistemas para Internet e Banco de Dados"] <- "tecbdd"
+net3$Curso[net3$Curso == "Turismo"] <- "turism"
+net3$Curso[net3$Curso == "Unifran"] <- "NA"
+net3$Curso[net3$Curso == "Universidade BRASIL - Superior Tecnologia em Gestão de Recursos Humanos"] <- "tecgst"
+net3$Curso[net3$Curso == "Web design"] <- "webdsg"
+net3$Curso[net3$Curso == "NA"] <- "NA"
+
+
+
+
+#==============================
+#==============================
+count_cursos <- net3 %>% count(Curso) %>% as.data.frame()
+write_excel_csv2(count_cursos,"cursos.csv")
+count_cursos2 <- net3 %>% count(Curso) # contagem dos cursos c nomes modificados
+count_cursos3 <- count_cursos2 %>% filter(n>=10) # selecao dos cursos com nomes modificados cujo N é maior que 10
+vetor_cursos <- count_cursos3$Curso %>% as.vector() # salvar a lista de curso como vetor
+
+
+net4 <- net3 %>% filter(Curso %in% vetor_cursos) # este comando FUNCIONOU... filtra df net3 pelos nomes dos cursos que estão em vetor_cursos
+net4 <- net4 %>% select(6,149:172,209) # seleção das variáveis de interesse para redes
+net4 <- net4 %>% na.exclude(Curso) # comando para excluir NA
+count(net4,Curso) %>% view()
+# net4 é um dataframe que contem os cursos com nomes padronizados e filtrados por n>10
+
+names(net4)
+x <- apply(net4[ ,c(7,10,13,17,22,25)], 1, which.max) # Identificar maior valor entre os escores RIASEC e retornar número correspondente à coluna RIASEC (1 a 6)
+
+net4 <- net4 %>% mutate(maior=x) # salvar x como coluna de net4
+names(net4)
+
+# Trasnformação dos valores das colunas nas letras RIASEC, respectivamente.
+net4$maior_cod[net4$maior == 1] <- "R"
+net4$maior_cod[net4$maior == 2] <- "I"
+net4$maior_cod[net4$maior == 3] <- "A"
+net4$maior_cod[net4$maior == 4] <- "S"
+net4$maior_cod[net4$maior == 5] <- "E"
+net4$maior_cod[net4$maior == 6] <- "C"
+
+names(net4)
+
+#================================================================================
+# SINTAXE QUE FUNCINOU PARA PLOTAR A REDE COM AS PORCENTAGENS
+#================================================================================
+
+df_arestas <- net4 %>% select(26,28)
+
+cursos_freq <- as.data.frame(table(df_arestas)) #somar as frequências.
+cursos_freq_rmzero <- subset(cursos_freq, Freq>0) #retirar frequências inferiores a 10
+
+
+g <- graph_from_data_frame(d=df_arestas,directed = FALSE) # cada aluno é uma aresta
+#g <- graph_from_data_frame(d=porc,directed = FALSE) # cada curso é um vértice
+plot(g)
+
+porc <- df_arestas %>% 
+  group_by(Curso) %>% 
+  count(maior_cod) %>% 
+  mutate(porc = n/sum(n)*100) %>% 
+  view()
+
+
+
+E(g)$weight <- E(g)$porc
+plot(g)
+
+plot(g, 
+     edge.width = abs(E(g)$weight)/8)
+
+
+#================================================================================
+# SINTAXE QUE FUNCINOU PARA PLOTAR A REDE COM AS PORCENTAGENS
+#================================================================================
+
+
+
+count(net3,Curso)
+#######Transformacao de todos os dados de adm
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administracao de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administraçao de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administracao de empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ADMINISTRAÇÃO DE EMPRESAS'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração geral'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administracao de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administracao de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administracao de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administracao de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Adm'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Adm de empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ADM de Empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ADMINISTRAÇÃO'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração de empresas'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração de Empresa'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração de Empresa'] <- 'adm'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração/gestão de projetos/fabricação Mecânica'] <- 'adm'
+count(Grande_banco_riasec,Curso)
+#######Transformacao de todos os dados de Ads
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Ads'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ADS - Analise e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ADS - Análise e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ADS Analise e Desenvolvimento de Sistemas.'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Administração e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análiise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise de desenvolvimento de sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de desenvolvimento de sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise de Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de desenvolvimento em Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de desenvolvimento em Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'analise desenvolvimento de sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise Desenvolvimento de Sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'análise desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise desenvolvimento sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e  Desenvolvimento de  Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolviemento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de aistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e Desenvolvimento de sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e Desenvolvimento de Sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de Sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolvimento de Sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de sistema (ADS)'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'analise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e Desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ANALISE E DESENVOLVIMENTO DE SISTEMAS'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ANALÍSE E DESENVOLVIMENTO DE SISTEMAS'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'análise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ANÁLISE E DESENVOLVIMENTO DE SISTEMAS'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolvimento de Sistemas (ADS)'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'analise e desenvolvimento de sistemas e informática para negócios'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolvimento de Sistemas.'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e desenvolvimento de sistenas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Desenvolvimento de Sistmas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise e Desenvolvimento de sitemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'analise e desenvolviomento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise em desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise em Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análises e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analista de Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analista e Desenvolvimento e Sistema'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise e Administração de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia em analise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia em Analise e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia em análise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia em Análise e desenvolvimento de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia em Análise e Desenvolvimento de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'TECNOLOGIA EM ANÁLISE E DESENVOLVIMENTO DE SISTEMAS'] <- 'ADS'
+
+#######Transformacao de todos os dados de AS (Analise de sistemas)
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'ANALISE DE SISTEMA'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Analise de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de Sistemas'] <- 'ADS'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Análise de sistemas e tecnologia da informação'] <- 'ADS'
+#Grande_banco_riasec_2021$Curso[Grande_banco_riasec_2021$Curso == 'Análise de Sistemas econômico financeiro'] <- 'ADS'
+
+#######Transformacao de todos os dados de Psicologia 
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'psicologia'] <- 'Psicologia'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Psicólogia'] <- 'Psicologia'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Psicologia - Formação de psicólogos'] <- 'Psicologia'
+#Grande_banco_riasec_2021$Curso[Grande_banco_riasec_2021$Curso == 'Psicologia  / Gestão Empresarial'] <- 'Psicologia' ### desativado por ser de gestao
+#Grande_banco_riasec_2021$Curso[Grande_banco_riasec_2021$Curso == 'Psicologia e Gestão Empresarial'] <- 'Psicologia' ### desativado por ser de gestao
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Psicologia, formação em psicólogo'] <- 'Psicologia'
+
+#######Transformacao de todos os dados de Gestao de recursos humanos
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Gestão de recursos humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Gestão de Recursos humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'GESTÃO DE RECURSOS HUMANOS'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Gestão de RH e Gestão Financeira'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Gestão em recursos humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Gestão Recursos Humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'História /Gestão de Recursos Humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Recursos humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Recursos Humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'RECURSOS HUMANOS'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia de Recursos Humanos'] <- 'Gestão de Recursos Humanos'
+Grande_banco_riasec$Curso[Grande_banco_riasec$Curso == 'Tecnologia em Gestao de RH / Tecnologia em Gestao de Eventos'] <- 'Gestão de Recursos Humanos'
+count(Grande_banco_riasec,Curso) %>% view()
+
+# Cursos selecionados para o estudo/manual.
+
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(curso_admin = if_else(Curso == 'adm',1,0))
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(curso_adsis = if_else(Curso == 'ADS',1,0))
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(curso_gerhu = if_else(Curso == 'Gestão de Recursos Humanos',1,0))
+Grande_banco_riasec <- Grande_banco_riasec %>% mutate(curso_psico = if_else(Curso == 'Psicologia',1,0))
+count(Grande_banco_riasec,curso_admin)
+count(Grande_banco_riasec,curso_adsis)
+count(Grande_banco_riasec,curso_gerhu)
+count(Grande_banco_riasec,curso_psico)
+
+names(Grande_banco_riasec)
+
+# Outros cursos
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_autin = if_else(Curso == 'Automação Industrial',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_comex = if_else(Curso == 'Comércio Exterior',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_civil = if_else(Curso == 'Construção Civil - Edif?cios',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_gecom = if_else(Curso == 'Gest?o Comercial',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_ge_ti = if_else(Curso == 'Gest?o da Tecnologia da Informa??o',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_geemp = if_else(Curso == 'Gest?o Empresarial',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_gefin = if_else(Curso == 'Gest?o Financeira',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_inneg = if_else(Curso == 'Inform?tica para Neg?cios',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_jodig = if_else(Curso == 'Jogos Digitais',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_logis = if_else(Curso == 'Log?stica',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_mecan = if_else(Curso == 'Mec?nica',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_recom = if_else(Curso == 'Redes de Computadores',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_segin = if_else(Curso == 'Seguran?a da Informa??o',1,0))
+#Grande_banco_riasec_2021 <- Grande_banco_riasec_2021 %>% mutate(curso_sisin = if_else(Curso == 'Sistemas da Informa??o',1,0))
+
+#transformacao de NA em zero - cursos selecionados
+Grande_banco_riasec$curso_admin[is.na(Grande_banco_riasec$curso_admin)] <- 0
+Grande_banco_riasec$curso_adsis[is.na(Grande_banco_riasec$curso_adsis)] <- 0
+Grande_banco_riasec$curso_gerhu[is.na(Grande_banco_riasec$curso_gerhu)] <- 0
+Grande_banco_riasec$curso_psico[is.na(Grande_banco_riasec$curso_psico)] <- 0
+
+#transformacao de NA em zero - outros cursos
+#Grande_banco_riasec_2021$curso_autin[is.na(Grande_banco_riasec_2021$curso_autin)] <- 0
+#Grande_banco_riasec_2021$curso_comex[is.na(Grande_banco_riasec_2021$curso_comex)] <- 0
+#Grande_banco_riasec_2021$curso_civil[is.na(Grande_banco_riasec_2021$curso_civil)] <- 0
+#Grande_banco_riasec_2021$curso_gecom[is.na(Grande_banco_riasec_2021$curso_gecom)] <- 0
+#Grande_banco_riasec_2021$curso_ge_ti[is.na(Grande_banco_riasec_2021$curso_ge_ti)] <- 0
+#Grande_banco_riasec_2021$curso_geemp[is.na(Grande_banco_riasec_2021$curso_geemp)] <- 0
+#Grande_banco_riasec_2021$curso_gefin[is.na(Grande_banco_riasec_2021$curso_gefin)] <- 0
+#Grande_banco_riasec_2021$curso_inneg[is.na(Grande_banco_riasec_2021$curso_inneg)] <- 0
+#Grande_banco_riasec_2021$curso_jodig[is.na(Grande_banco_riasec_2021$curso_jodig)] <- 0
+#Grande_banco_riasec_2021$curso_logis[is.na(Grande_banco_riasec_2021$curso_logis)] <- 0
+#Grande_banco_riasec_2021$curso_mecan[is.na(Grande_banco_riasec_2021$curso_mecan)] <- 0
+#Grande_banco_riasec_2021$curso_recom[is.na(Grande_banco_riasec_2021$curso_recom)] <- 0
+#Grande_banco_riasec_2021$curso_segin[is.na(Grande_banco_riasec_2021$curso_segin)] <- 0
+#Grande_banco_riasec_2021$curso_sisin[is.na(Grande_banco_riasec_2021$curso_sisin)] <- 0
+
+count(Grande_banco_riasec,curso_admin) %>% kable()
+count(Grande_banco_riasec,curso_adsis) %>% kable()
+count(Grande_banco_riasec,curso_gerhu) %>% kable()
+count(Grande_banco_riasec,curso_psico) %>% kable()
+
+names(Grande_banco_riasec)
+Grande_banco_riasec <- Grande_banco_riasec %>% 
+  mutate(cursos_selecionados = if_else(Curso=="adm",1,
+                                       if_else(Curso=="ADS",2,
+                                               if_else(Curso=="Psicologia",3,
+                                                       if_else(Curso=="Gestão de Recursos Humanos",4,0)))))
+
+count(Grande_banco_riasec,cursos_selecionados)
+
+#Criacao do banco com apenas pessoas dos cursos_selecionados
+Grande_banco_riasec_anova <- Grande_banco_riasec %>% filter(cursos_selecionados>=1)
+Grande_banco_riasec_anova %>% count(cursos_selecionados)
+names(Grande_banco_riasec_anova)
+
+Grande_banco_riasec_anova <- Grande_banco_riasec_anova %>% mutate(curso_psi = if_else(cursos_selecionados==3,1,0))
+Grande_banco_riasec_anova <- Grande_banco_riasec_anova %>% mutate(curso_adm = if_else(cursos_selecionados==1,1,0))
+Grande_banco_riasec_anova <- Grande_banco_riasec_anova %>% mutate(curso_ads = if_else(cursos_selecionados==2,1,0))
+Grande_banco_riasec_anova <- Grande_banco_riasec_anova %>% mutate(curso_grh = if_else(cursos_selecionados==4,1,0))
+
+Grande_banco_riasec_anova %>% count(curso_psi)
+Grande_banco_riasec_anova %>% count(curso_adm)
+Grande_banco_riasec_anova %>% count(curso_ads)
+Grande_banco_riasec_anova %>% count(curso_grh)
+
+# Analises de regressao
+
+logit_psi <- glm(curso_psi ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, 
+                 family = binomial('logit'), 
+                 data=Grande_banco_riasec_anova, 
+                 na.action =na.omit)
+
+logit_adm <- glm(curso_adm ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, 
+                 family = binomial('logit'), 
+                 data=Grande_banco_riasec_anova, 
+                 na.action =na.omit)
+
+logit_ads <- glm(curso_ads ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, 
+                 family = binomial('logit'), 
+                 data=Grande_banco_riasec_anova, 
+                 na.action =na.omit)
+
+logit_grh <- glm(curso_grh ~ R1+R2+R3+R4+I1+I2+A1+A2+S1+S2+S3+E1+E2+E3+E4+C1+C2, 
+                 family = binomial('logit'), 
+                 data=Grande_banco_riasec_anova, 
+                 na.action =na.omit)
+
+summary(logit_psi)
+summary(logit_adm)
+summary(logit_ads)
+summary(logit_grh)
+
+coef(logit_psi) %>% exp() 
+coef(logit_adm) %>% exp()
+coef(logit_ads) %>% exp()
+coef(logit_grh) %>% exp()
+
+names(Grande_banco_riasec_anova)
+
+Grande_banco_riasec_anova %>% group_by(Sexo,curso_admin) %>% summarise(n=n()) %>% kable()
+
+Grande_banco_riasec %>% group_by(curso_admin) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()#clacular porcentagem
+Grande_banco_riasec %>% group_by(curso_adsis) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()#clacular porcentagem
+Grande_banco_riasec %>% group_by(curso_psico) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()#clacular porcentagem
+Grande_banco_riasec %>% group_by(curso_gerhu) %>% count(Sexo) %>% mutate(porc = n/sum(n)*100) %>% kable()#clacular porcentagem
+
+Grande_banco_riasec_anova %>% group_by(cursos_selecionados) %>% summarise(n=n(), idade = mean(Idade), desvp = sd(Idade)) %>% kable()
+count(Grande_banco_riasec_anova)
+
+write_excel_csv2(Grande_banco_riasec,"riasec_completo_atualizado.csv")
+
+#Estatisticas descritivas
+
+names(Grande_banco_riasec)
+View(Grande_banco_riasec)
+view(riasec_2)
+write_excel_csv2(Grande_banco_riasec,"grande_banco_riasec.csv")
+
+
+
+names(Grande_banco_riasec)
+
+df2 <- Grande_banco_riasec %>% select(173:214)
+riasec_completo <- bind_cols(riasec_2,df2)
+names(riasec_completo)
+view(riasec_completo$curso_admin)
+write_excel_csv2(riasec_completo,"riasec_completo_atualizado.csv")
+triades <- read_csv2("teste_rank (CORRIGIDO)2999.csv",col_names = TRUE)
+
+names(triades)
+view(triades)
+
+triades <- triades %>% slice(-1471)
+df3 <- triades %>% select(10:15)
+names(df3)
+riasec_completo <- bind_cols(riasec_completo,df3)
+names(riasec_completo)
+
+riasec_completo %>% filter(ti_mobil==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_bdata==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_educa==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_quali==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_gesta==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_nuvem==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_userx==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_segur==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_cienc==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_supor==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_back_==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_banco==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_stack==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_redes==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+riasec_completo %>% filter(ti_front==1) %>% count(`Letras Juntas`) %>% mutate(porc = n/sum(n)*100) %>% kable()
+
+# Estatisticas descritivas ====================
+
+count(Grande_banco_riasec,Sexo)
+names(Grande_banco_riasec) %>% as.data.frame()
+view(riasec_5)
+
+# por esse método, calcula-se as pontuações correspondentes aos percentis desejados.
+# optei por colocar no relatório final, os percentis correspondentes às pontuações desejadas (de 1 a 4) - ver mais abaixo.
+
+# perc_R  <- quantile(Grande_banco_riasec$R , c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_R1 <- quantile(Grande_banco_riasec$R1, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_R2 <- quantile(Grande_banco_riasec$R2, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_R3 <- quantile(Grande_banco_riasec$R3, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_R4 <- quantile(Grande_banco_riasec$R4, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_I  <- quantile(Grande_banco_riasec$I , c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_I1 <- quantile(Grande_banco_riasec$I1, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_I2 <- quantile(Grande_banco_riasec$I2, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_A  <- quantile(Grande_banco_riasec$A , c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_A1 <- quantile(Grande_banco_riasec$A1, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_A2 <- quantile(Grande_banco_riasec$A2, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_S  <- quantile(Grande_banco_riasec$S , c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_S1 <- quantile(Grande_banco_riasec$S1, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_S2 <- quantile(Grande_banco_riasec$S2, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_S3 <- quantile(Grande_banco_riasec$S3, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_E  <- quantile(Grande_banco_riasec$E , c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_E1 <- quantile(Grande_banco_riasec$E1, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_E2 <- quantile(Grande_banco_riasec$E2, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_E3 <- quantile(Grande_banco_riasec$E3, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_E4 <- quantile(Grande_banco_riasec$E4, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_C  <- quantile(Grande_banco_riasec$C , c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_C1 <- quantile(Grande_banco_riasec$C1, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+# perc_C2 <- quantile(Grande_banco_riasec$C2, c(.10,.20,.30,.40,.50,.60,.70,.80,.90)) %>% round(digits = 2)
+
+# tabela_perc <- data.frame(
+#   Percentis = c("10","20","30","40","50","60","70","80","90"),
+#   R = perc_R,
+#   R1 = perc_R1,
+#   R2 = perc_R2,
+#   R3 = perc_R3,
+#   R4 = perc_R4,
+#   I  = perc_I ,
+#   I1 = perc_I1,
+#   I2 = perc_I2,
+#   A  = perc_A ,
+#   A1 = perc_A1,
+#   A2 = perc_A2,
+#   S  = perc_S ,
+#   S1 = perc_S1,
+#   S2 = perc_S2,
+#   S3 = perc_S3,
+#   E  = perc_E ,
+#   E1 = perc_E1,
+#   E2 = perc_E2,
+#   E3 = perc_E3,
+#   E4 = perc_E4,
+#   C  = perc_C ,
+#   C1 = perc_C1,
+#   C2 = perc_C2
+# )
+
+# tabela_perc %>% kable()
+
+
+# Cálculo dos percentis com base nas pontuações desejadas ============================================================
+
+# mean(Grande_banco_riasec$R)
+# sd(Grande_banco_riasec$R)
+# pnorm(Grande_banco_riasec$R,mean = 1.902012,sd = 0.6031138)
+# pnorm(Grande_banco_riasec$R,mean(Grande_banco_riasec$R),sd(Grande_banco_riasec$R))
+
+# round(pnorm(seq(from=1,by=0.1,length=31),mean = 1.902012,sd = 0.6031138)*100,2)
+# round(pnorm(Grande_banco_riasec$R,mean(Grande_banco_riasec$R),sd(Grande_banco_riasec$R))*100,2)
+
+# summary(Grande_banco_riasec$R)
+# seq(from=1,by=0.1,length=31)
+
+# Primeiro passo: calculo das médias e dos desvios padrões
+
+mean_R  <- mean(Grande_banco_riasec$R ) %>% round(digits=2)
+mean_R1 <- mean(Grande_banco_riasec$R1) %>% round(digits=2)
+mean_R2 <- mean(Grande_banco_riasec$R2) %>% round(digits=2)
+mean_R3 <- mean(Grande_banco_riasec$R3) %>% round(digits=2)
+mean_R4 <- mean(Grande_banco_riasec$R4) %>% round(digits=2)
+mean_I  <- mean(Grande_banco_riasec$I ) %>% round(digits=2)
+mean_I1 <- mean(Grande_banco_riasec$I1) %>% round(digits=2)
+mean_I2 <- mean(Grande_banco_riasec$I2) %>% round(digits=2)
+mean_A  <- mean(Grande_banco_riasec$A ) %>% round(digits=2)
+mean_A1 <- mean(Grande_banco_riasec$A1) %>% round(digits=2)
+mean_A2 <- mean(Grande_banco_riasec$A2) %>% round(digits=2)
+mean_S  <- mean(Grande_banco_riasec$S ) %>% round(digits=2)
+mean_S1 <- mean(Grande_banco_riasec$S1) %>% round(digits=2)
+mean_S2 <- mean(Grande_banco_riasec$S2) %>% round(digits=2)
+mean_S3 <- mean(Grande_banco_riasec$S3) %>% round(digits=2)
+mean_E  <- mean(Grande_banco_riasec$E ) %>% round(digits=2)
+mean_E1 <- mean(Grande_banco_riasec$E1) %>% round(digits=2)
+mean_E2 <- mean(Grande_banco_riasec$E2) %>% round(digits=2)
+mean_E3 <- mean(Grande_banco_riasec$E3) %>% round(digits=2)
+mean_E4 <- mean(Grande_banco_riasec$E4) %>% round(digits=2)
+mean_C  <- mean(Grande_banco_riasec$C ) %>% round(digits=2)
+mean_C1 <- mean(Grande_banco_riasec$C1) %>% round(digits=2)
+mean_C2 <- mean(Grande_banco_riasec$C2) %>% round(digits=2)
+
+sdev_R  <- sd(Grande_banco_riasec$R ) %>% round(digits=2)
+sdev_R1 <- sd(Grande_banco_riasec$R1) %>% round(digits=2)
+sdev_R2 <- sd(Grande_banco_riasec$R2) %>% round(digits=2)
+sdev_R3 <- sd(Grande_banco_riasec$R3) %>% round(digits=2)
+sdev_R4 <- sd(Grande_banco_riasec$R4) %>% round(digits=2)
+sdev_I  <- sd(Grande_banco_riasec$I ) %>% round(digits=2)
+sdev_I1 <- sd(Grande_banco_riasec$I1) %>% round(digits=2)
+sdev_I2 <- sd(Grande_banco_riasec$I2) %>% round(digits=2)
+sdev_A  <- sd(Grande_banco_riasec$A ) %>% round(digits=2)
+sdev_A1 <- sd(Grande_banco_riasec$A1) %>% round(digits=2)
+sdev_A2 <- sd(Grande_banco_riasec$A2) %>% round(digits=2)
+sdev_S  <- sd(Grande_banco_riasec$S ) %>% round(digits=2)
+sdev_S1 <- sd(Grande_banco_riasec$S1) %>% round(digits=2)
+sdev_S2 <- sd(Grande_banco_riasec$S2) %>% round(digits=2)
+sdev_S3 <- sd(Grande_banco_riasec$S3) %>% round(digits=2)
+sdev_E  <- sd(Grande_banco_riasec$E ) %>% round(digits=2)
+sdev_E1 <- sd(Grande_banco_riasec$E1) %>% round(digits=2)
+sdev_E2 <- sd(Grande_banco_riasec$E2) %>% round(digits=2)
+sdev_E3 <- sd(Grande_banco_riasec$E3) %>% round(digits=2)
+sdev_E4 <- sd(Grande_banco_riasec$E4) %>% round(digits=2)
+sdev_C  <- sd(Grande_banco_riasec$C ) %>% round(digits=2)
+sdev_C1 <- sd(Grande_banco_riasec$C1) %>% round(digits=2)
+sdev_C2 <- sd(Grande_banco_riasec$C2) %>% round(digits=2)
+
+# Segundo passo: calculo dos percentis correspondetes às pontuações de 1 a 4
+# As pontuações foram subindo com intervalos de 0,1 ponto.
+
+p_R  <- round(pnorm(seq(from=1,by=0.1,length=31),mean_R ,sdev_R )*100,2)
+p_R1 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_R1,sdev_R1)*100,2)
+p_R2 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_R2,sdev_R2)*100,2)
+p_R3 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_R3,sdev_R3)*100,2)
+p_R4 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_R4,sdev_R4)*100,2)
+p_I  <- round(pnorm(seq(from=1,by=0.1,length=31),mean_I ,sdev_I )*100,2)
+p_I1 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_I1,sdev_I1)*100,2)
+p_I2 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_I2,sdev_I2)*100,2)
+p_A  <- round(pnorm(seq(from=1,by=0.1,length=31),mean_A ,sdev_A )*100,2)
+p_A1 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_A1,sdev_A1)*100,2)
+p_A2 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_A2,sdev_A2)*100,2)
+p_S  <- round(pnorm(seq(from=1,by=0.1,length=31),mean_S ,sdev_S )*100,2)
+p_S1 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_S1,sdev_S1)*100,2)
+p_S2 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_S2,sdev_S2)*100,2)
+p_S3 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_S3,sdev_S3)*100,2)
+p_E  <- round(pnorm(seq(from=1,by=0.1,length=31),mean_E ,sdev_E )*100,2)
+p_E1 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_E1,sdev_E1)*100,2)
+p_E2 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_E2,sdev_E2)*100,2)
+p_E3 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_E3,sdev_E3)*100,2)
+p_E4 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_E4,sdev_E4)*100,2)
+p_C  <- round(pnorm(seq(from=1,by=0.1,length=31),mean_C ,sdev_C )*100,2)
+p_C1 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_C1,sdev_C1)*100,2)
+p_C2 <- round(pnorm(seq(from=1,by=0.1,length=31),mean_C2,sdev_C2)*100,2)
+
+# Tabela: a primeira coluna contem as pontuacoes; as demais contêm os respectivos percentis.
+
+tabela_percentil_teórico <- data.frame(
+  Pontuações = c(seq(from=1,by=0.1,length=31)),
+  R  = p_R,
+  R1 = p_R1,
+  R2 = p_R2,
+  R3 = p_R3,
+  R4 = p_R4,
+  I  = p_I ,
+  I1 = p_I1,
+  I2 = p_I2,
+  A  = p_A ,
+  A1 = p_A1,
+  A2 = p_A2,
+  S  = p_S ,
+  S1 = p_S1,
+  S2 = p_S2,
+  S3 = p_S3,
+  E  = p_E ,
+  E1 = p_E1,
+  E2 = p_E2,
+  E3 = p_E3,
+  E4 = p_E4,
+  C  = p_C ,
+  C1 = p_C1,
+  C2 = p_C2
+)
+
+# Calculo dos escores percentílicos dos sujeitos
+
+round(pnorm(Grande_banco_riasec$R,mean_R ,sdev_R )*100,2)
+
+Grande_banco_riasec$p_R  <- round(pnorm(Grande_banco_riasec$R ,mean_R ,sdev_R )*100,2)
+Grande_banco_riasec$p_R1 <- round(pnorm(Grande_banco_riasec$R1,mean_R1,sdev_R1)*100,2)
+Grande_banco_riasec$p_R2 <- round(pnorm(Grande_banco_riasec$R2,mean_R2,sdev_R2)*100,2)
+Grande_banco_riasec$p_R3 <- round(pnorm(Grande_banco_riasec$R3,mean_R3,sdev_R3)*100,2)
+Grande_banco_riasec$p_R4 <- round(pnorm(Grande_banco_riasec$R4,mean_R4,sdev_R4)*100,2)
+Grande_banco_riasec$p_I  <- round(pnorm(Grande_banco_riasec$I ,mean_I ,sdev_I )*100,2)
+Grande_banco_riasec$p_I1 <- round(pnorm(Grande_banco_riasec$I1,mean_I1,sdev_I1)*100,2)
+Grande_banco_riasec$p_I2 <- round(pnorm(Grande_banco_riasec$I2,mean_I2,sdev_I2)*100,2)
+Grande_banco_riasec$p_A  <- round(pnorm(Grande_banco_riasec$A ,mean_A ,sdev_A )*100,2)
+Grande_banco_riasec$p_A1 <- round(pnorm(Grande_banco_riasec$A1,mean_A1,sdev_A1)*100,2)
+Grande_banco_riasec$p_A2 <- round(pnorm(Grande_banco_riasec$A2,mean_A2,sdev_A2)*100,2)
+Grande_banco_riasec$p_S  <- round(pnorm(Grande_banco_riasec$S ,mean_S ,sdev_S )*100,2)
+Grande_banco_riasec$p_S1 <- round(pnorm(Grande_banco_riasec$S1,mean_S1,sdev_S1)*100,2)
+Grande_banco_riasec$p_S2 <- round(pnorm(Grande_banco_riasec$S2,mean_S2,sdev_S2)*100,2)
+Grande_banco_riasec$p_S3 <- round(pnorm(Grande_banco_riasec$S3,mean_S3,sdev_S3)*100,2)
+Grande_banco_riasec$p_E  <- round(pnorm(Grande_banco_riasec$E ,mean_E ,sdev_E )*100,2)
+Grande_banco_riasec$p_E1 <- round(pnorm(Grande_banco_riasec$E1,mean_E1,sdev_E1)*100,2)
+Grande_banco_riasec$p_E2 <- round(pnorm(Grande_banco_riasec$E2,mean_E2,sdev_E2)*100,2)
+Grande_banco_riasec$p_E3 <- round(pnorm(Grande_banco_riasec$E3,mean_E3,sdev_E3)*100,2)
+Grande_banco_riasec$p_E4 <- round(pnorm(Grande_banco_riasec$E4,mean_E4,sdev_E4)*100,2)
+Grande_banco_riasec$p_C  <- round(pnorm(Grande_banco_riasec$C ,mean_C ,sdev_C )*100,2)
+Grande_banco_riasec$p_C1 <- round(pnorm(Grande_banco_riasec$C1,mean_C1,sdev_C1)*100,2)
+Grande_banco_riasec$p_C2 <- round(pnorm(Grande_banco_riasec$C2,mean_C2,sdev_C2)*100,2)
+
+# imprimir a tabela
+tabela_percentil_teórico %>% kable()
+
+names(Grande_banco_riasec) %>% as.data.frame()
+glimpse(Grande_banco_riasec[ ,149:172])
+Grande_banco_riasec %>% slice(1) %>% select(149:172) %>% as.data.frame() %>% kable()
+# informações sobre sexo e idade ====
+
+Grande_banco_riasec %>% select(Sexo,Idade)%>% slice (1:2000) %>% group_by(Sexo) %>% summarise(Idade = mean(Idade))
+Grande_banco_riasec %>% select(Sexo,Idade) %>% slice (1:2000) %>% group_by(Sexo) %>% summarise(Desvio = sd(Idade))
+
+Grande_banco_riasec %>% select (Idade) %>% slice(1:2000) %>% summary()
+
+
+mean(Grande_banco_riasec$Idade)
+sd(Grande_banco_riasec$Idade)
+
+riasec_3 %>% select(Sexo,Idade) %>% group_by(Sexo) %>% summarise(Idade = mean(Idade),Desvio = sd(Idade))
+riasec_3 %>% select(Sexo,Idade) %>% group_by(Sexo) %>% summarise(Desvio = sd(Idade))
+mean(riasec_3$Idade)
+sd(riasec_3$Idade)
+

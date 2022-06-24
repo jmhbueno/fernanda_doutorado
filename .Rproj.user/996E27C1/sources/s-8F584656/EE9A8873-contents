@@ -1,0 +1,15 @@
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(pander)
+

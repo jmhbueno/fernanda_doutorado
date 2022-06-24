@@ -1,0 +1,512 @@
+names(df2[ ,1:15])
+df2 %>% count(genero)
+df2 %>% count(cor)
+str(df2[ ,1:15])
+df2$genero <- df2$genero %>% as.factor()
+str(df2[ ,1:15])
+levels(df2$genero) <- c("Feminino","Masculino","Não_binário")
+str(df2[ ,1:15])
+df2$genero
+df2 %>% count(genero)
+levels(df2$cor) <- c("Branco/a","Preto/a","Pardo/a","Amarelo","Prefiro não informar")
+df2 %>% count(cor)
+df2$cor <- df2$cor %>% as.factor()
+levels(df2$cor) <- c("Branco/a","Preto/a","Pardo/a","Amarelo","Prefiro não informar")
+df2 %>% count(cor)
+df2 %>% group_by(genero) %>% count(cor) %>% mutate("%" = n/sum(n)*100)
+df2 %>% count(genero,cor) %>% mutate("%" = n/sum(n)*100)
+df2 %>% count(genero,cor) %>% mutate("%" = n/sum(n)*100) %>% kable()
+df2 %>% count(genero,cor) %>% mutate("%" = n/sum(n)*100) %>% kable(format = "rst")
+names(df2[ ,1:60])
+qaes <- df2 %>% select(15:54) #criar um objeto (dataframe) só os itens do QAES
+qaes
+qaes
+df2
+df2 %>% select(15:54)
+qaes <- df2 %>% select(15:54) #criar um objeto (dataframe) só os itens do QAES
+qaes %>% select(5,10,15,20,25,30,35,40)
+qaes %>% select(5,10,15,20,25,30,35,40) %>% omega()
+library(tidyverse)
+qaes %>% select(5,10,15,20,25,30,35,40) %>% omega(poly = TRUE)
+rely_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40) %>% omega(poly = TRUE)
+rely_qaes_projcar$scores
+rely_qaes_projcar$alpha
+rely_qaes_projcar$omega.tot
+rely_qaes_projcar
+rely_qaes_adptins
+rely_qaes_adptins$alpha
+rely_qaes_projcar$alpha
+rely_qaes_adptsoc$alpha
+rely_qaes_apesemo$alpha
+rely_qaes_adptest$alpha
+rely_qaes_adptins$alpha
+qaes
+qaes$qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40) %>% rowMeans()
+qaes$qaes_adptsoc <- qaes %>% select(2, 7,12,17,22,27,32,37) %>% rowMeans()
+qaes$qaes_apesemo <- qaes %>% select(4, 9,14,19,39,29,34,24) %>% rowMeans()
+qaes$qaes_adptest <- qaes %>% select(3,38,13,18,23,28,33, 8) %>% rowMeans()
+qaes$qaes_adptins <- qaes %>% select(1, 6,11,16,21,26,36,31) %>% rowMeans()
+names(qaes)
+projcar_media <- mean(qaes$qaes_projcar,na.rm = TRUE)
+adptsoc_media <- mean(qaes$qaes_adptsoc,na.rm = TRUE)
+apesemo_media <- mean(qaes$qaes_apesemo,na.rm = TRUE)
+adptest_media <- mean(qaes$qaes_adptest,na.rm = TRUE)
+adptins_media <- mean(qaes$qaes_adptins,na.rm = TRUE)
+projcar_dsvpd <- sd(qaes$qaes_projcar,na.rm = TRUE)
+adptsoc_dsvpd <- sd(qaes$qaes_adptsoc,na.rm = TRUE)
+apesemo_dsvpd <- sd(qaes$qaes_apesemo,na.rm = TRUE)
+adptest_dsvpd <- sd(qaes$qaes_adptest,na.rm = TRUE)
+adptins_dsvpd <- sd(qaes$qaes_adptins,na.rm = TRUE)
+qaes_escores <- qaes %>% select(41:45) # selecao das colunas com os escores e salvar no objeto qaes_escores
+df2 <- cbind(df2,qaes_escores)         # combinação de df2 com qaes_escores
+names(df2)
+data.frame(variáveis = c("Projeto de Carreira",
+"Adaptação Social",
+"Adaptação Pessoal e Emocional",
+"Adaptação ao Estudo",
+"Adaptação Institucional"),
+média = c(projcar_media,
+adptsoc_media,
+apesemo_media,
+adptest_media,
+adptins_media),
+"desvio padrão" = c(projcar_dsvpd,
+adptsoc_dsvpd,
+apesemo_dsvpd,
+adptest_dsvpd,
+adptins_dsvpd),
+alfa = c(projcar_alpha,
+adptsoc_alpha,
+apesemo_alpha,
+adptest_alpha,
+adptins_alpha),
+omega = c(projcar_omega,
+adptsoc_omega,
+apesemo_omega,
+adptest_omega,
+adptins_omega))
+df_qaes_descritivas <- data.frame(variáveis = c("Projeto de Carreira",
+"Adaptação Social",
+"Adaptação Pessoal e Emocional",
+"Adaptação ao Estudo",
+"Adaptação Institucional"),
+média = c(projcar_media,
+adptsoc_media,
+apesemo_media,
+adptest_media,
+adptins_media),
+"desvio padrão" = c(projcar_dsvpd,
+adptsoc_dsvpd,
+apesemo_dsvpd,
+adptest_dsvpd,
+adptins_dsvpd),
+alfa = c(projcar_alpha,
+adptsoc_alpha,
+apesemo_alpha,
+adptest_alpha,
+adptins_alpha),
+omega = c(projcar_omega,
+adptsoc_omega,
+apesemo_omega,
+adptest_omega,
+adptins_omega))
+df_qaes_descritivas %>% kable(format = "rst", escape = FALSE)
+pairs.panels(qaes_escores)
+install.packages("kableExtra")
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+view(df2)
+citation()
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+search()
+sexo
+sexo_cod
+sexo_cod_logica
+table(sexo)
+table(media_idade$sexo)
+sexo_idade
+table(sexo_idade$sexo_cod) # cria uma tabela de frequências
+table(sexo_idade$escolaridade)
+table(sexo_idade$sexo_cod,sexo_idade$escolaridade)
+prop.table(sexo_idade$sexo_cod)
+prop.table(sexo_idade,sexo_cod)
+prop.table(sexo_idade$sexo_cod,c(1,2))
+prop.table(sexo_idade$idade,c(1,2))
+prop.table(sexo_idade$bonus,c(1,2))
+prop.table(table(sexo_idade$sexo_cod))
+prop.table(table(sexo_idade$sexo_cod)*100)
+prop.table(table(sexo_idade$sexo_cod))*100
+prop.table(table(sexo_idade$sexo_cod,sexo_idade$escolaridade))
+prop.table(table(sexo_idade$sexo_cod,sexo_idade$escolaridade))*100
+table2df(sexo_idade)
+table2df(bock.table[,2:6],count=bock.table[,7],labs= paste("lsat6.",1:5,sep=""))
+bock.table
+responses <- table2df(bock.table[,2:6],count=bock.table[,7],labs= paste("lsat6.",1:5,sep=""))
+describe(responses)
+table2df(bock.table[,2:6]
+df <- sexo_idade
+table2df(bock.table[,2:6])
+bock.table[,2:6]
+bock.table[,7]
+sexo_idade
+sexo_idade$ident <- paste("s",1:6,sep="")
+paste("s",1:6,sep="")
+sexo_idade$ident
+sexo_idade
+sexo_idade$ident <- paste("s",01:6,sep="")
+sexo_idade
+sexo_idade$ident <- paste("s",01:06,sep="")
+sexo_idade$ident
+rm(responses)
+# Se quiser inserir s antes dos número do sujeito
+sexo_idade$id <- paste("s",1:6,sep="")
+sexo_idade$id
+sexo_idade
+select(-sexo_idade$ident)
+select(sexo_idade,-ident)
+sexo_idade
+sexo_idade <- select(sexo_idade,-ident)
+sexo_idade
+df <- sexo_idade
+filter(df,sexo_cod == "m")
+filter(df,idade < 35)
+filter(df,sexo_cod == "m",idade<35)
+slice(df,1:3)
+slice(df,c(1,4,6))
+slice(df,c(1,4:6))
+slice(df,-2)
+slice(df,-c(2,5))
+select(df,sexo_cod,idade)
+select(df,1:3)
+select(df, -c(renda,bonus))
+select(df,-renda_total)
+df <- select(df,-renda_total)
+mutate(df,renda_total = renda + bonus)
+df <- mutate(df,renda_total = renda + bonus)
+df
+arrange(df,id)
+arrange(df,idade)
+df
+df <- df %>% select(-c(bonus, renda_total))
+df %>% mutate(bonus = 500) %>% mutate(renda_total = renda + bonus)
+df %>% mutate(bonus = ifelse(sexo_cod == "m",1000,500)) %>% mutate(renda_total = renda + bonus)
+df %>% group_by(sexo_cod) %>%
+summarise(média_salarial = mean(renda_total, na.rm = TRUE))
+df1
+glimpse(df1)
+df2
+glimpse(df2)
+names(df2)
+df2 <- df2[ ,15:170] %>% as.integer()
+df2[ ,15:170] %>% as.integer()
+df2[ ,15:170] %>% as.vector()
+df2 <- df2[ ,15:170] %>% as.vector()
+glimpse(df2)
+df2 <- df2[ ,15:170] %>% as.integer()
+df2[ ,15:170] %>% as.integer()
+df2
+glimpse(df2)
+df2 <- df1 %>% rename_all(list(~c("idade","genero","estado","cor","eb","es","ies",
+"anocurso","curso","mediag","turno","formato","opcaouni","opçãocurso",
+"a1","a2","a3","a4","a5","a6","a7","a8","a9","a10","a11","a12",
+"a13","a14","a15","a16","a17","a18","a19","a20","a21","a22","a23","a24",
+"a25","a26","a27","a28","a29","a30","a31","a32","a33","a34","a35","a36",
+"a37","a38","a39","a40","ce1","ce2","ce3","ce4","ce5","ce6","ce7","ce8",
+"ce9","ce10","ce11","ce12","ce13","ce14","ce15","ce16","ce17","ce18","re1","re2",
+"re3","re4","re5","re6","re7","re8","re9","re10","re11","re12","re13","re14",
+"re15","re16","re17","re18","re19","re20","re21","re22","re23","re24","rv1","rv2",
+"rv3","rv4","rv5","rv6","rv7","rv8","rv9","rv10","rv11","rv12","p1","p2",
+"p3","p4","p5","p6","p7","p8","p9","p10","p11","p12","p13","p14",
+"p15","p16","p17","p18","p19","p20","p21","p22","p23","p24","p25","p26",
+"p27","p28","p29","p30","p31","p32","p33","p34","p35","p36","p37","p38",
+"p39","p40","p41","p42","p43","p44","ib1","ib2","ib3","ib4","ib5","ib6",
+"ib7","ib8","ib9","ib10","ib11","ib12","ib13","ib14","ib15","ib16","ib17","ib18")))
+glimpse(df2)
+as.integer(df2[ ,15:170])
+options(df2[15:170],digits = 0)
+options(df2[15:170],digits = 1)
+view(df2)
+df2 %>%                                     # pega o objeto (dataframe) df2
+summarise(                                # e aplica a funcao summarise, que monta uma tabela com os dados solicitados
+média_idade = mean(df2$idade, na.rm = T), # que, nesse caso, são: 1) a media da idade, removendo os dados ausentes (NA)
+desvio_padrão = sd(df2$idade, na.rm = T)) # e o desvio padrao da idade, removendo os dados ausentes (NA)
+df2 %>% summary(df$idade)
+summary(df$idade)
+summary(df$idade,df$renda)
+summary(c(df2$idade,df2$mediag))
+summary(c(df2$idade,df2$mediag)) %>% as.data.frame()
+range(df2$idade)
+nclass.Sturges(df2$idade)# em quantas categorias eu poderia classificar a variável idade
+nclass.FD(df2$idade)
+nclass.scott(df2$idade)
+table(cut(df2$idade,seq(15,65,l = 10)))
+table(cut(df2$idade,seq(15,65,l = 10))) %>% histogram()
+table_hist <- table(cut(df2$idade,seq(15,65,l = 10)))
+histogram(table_hist)
+rm(table_hist)
+# cut(comando para cortar os valores
+# seq(valor mínimo, valor máximo , l = número de classes)
+# no número de classes, colocar uma a mais do que indicou o nclass.Sturges
+histogram(df2$idade)
+df2$idade %>% table()
+df2$idade %>% table() %>% as.data.frame()
+idade_table <- df2$idade %>% table() %>% as.data.frame()
+idade_table$Freq %>% prop.table()
+idade_table$"%" <- idade_table$Freq %>% prop.table()*100
+idade_table$"%"
+idade_table
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+describe(df2$idade)
+describe(df2$idade) #comando do pacote psych, que ja traz uma serie de estatisticas descritivas
+names(df2)
+describeBy(df2[ ,c("idade","mediag")],group = df2$genero)
+df2$mediag
+glimpse(df2)
+glimpse(df2[ ,1:14])
+df2$mediag <- as.numeric(df2$mediag)
+glimpse(df2[ ,1:14])
+amostra_nota_media <- df2 %>%
+summarise(
+média_idade = mean(df2$mediag, na.rm = T),
+desvio_padrão = sd(df2$mediag, na.rm = T))
+amostra_nota_media
+df2 %>% count(genero)
+df2 %>% count(cor)
+df2$genero <- df2$genero %>% as.factor()
+levels(df2$genero) <- c("Feminino","Masculino","Não_binário")
+df2$cor <- df2$cor %>% as.factor()
+levels(df2$cor) <- c("Preto","Pardo","Branco","Indígena","Amarelo","Prefiro não informar")
+describeBy(df2[ ,c("idade","mediag")],group = df2$genero)
+describeBy(df2[ ,c("idade","mediag")],group = df2$cor)
+describeBy(df2[ ,c("idade","mediag")],group = df2$genero:df2$cor)
+describeBy(df2[ ,c("idade","mediag")],group = df2$genero:df2$escolaridade)
+rely_qaes_projcar
+alpha_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha(poly=TRUE)
+alpha_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha(digits=2)
+alpha_qaes_projcar
+alpha_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha(digits=2)
+alpha_qaes_projcar
+qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha(digits=2)
+alpha_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha()
+alpha_qaes_projcar
+alpha_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha(digits(2))
+alpha_qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40)%>% alpha(digits = 2)
+qaes %>% select(5,10,15,20,25,30,35,40) %>% omega(poly=TRUE)
+rely_qaes_projcar<-qaes %>% select(5,10,15,20,25,30,35,40) %>% omega(poly=TRUE,digits = 3)
+rely_qaes_projcar
+alpha_qaes_adptsoc <- qaes %>% select(2,7,12,17,22,27,32,37) %>% alpha()
+alpha_qaes_apesemo <- qaes %>% select(4,9,14,19,39,29,34,24) %>% alpha()
+alpha_qaes_adptest <- qaes %>% select(3,38,13,18,23,28,33,8) %>% alpha()
+alpha_qaes_adptins <- qaes %>% select(1,6,11,16,21,26,36,31) %>% alpha()
+summary(alpha_qaes_projcar)
+summary(alpha_qaes_projcar$alpha.drop)
+alpha_qaes_adptins$alpha.drop
+alpha_qaes_projcar$alpha.drop
+alpha_qaes_projcar
+alpha_qaes_projcar$alpha.drop
+rely_qaes_projcar$alpha
+rely_qaes_projcar$omega.group
+rely_qaes_projcar$stats
+qaes$qaes_projcar
+qaes$qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40) %>% rowMeans(digit=2)
+qaes$qaes_projcar <- qaes %>% select(5,10,15,20,25,30,35,40) %>% rowMeans(digits=2)
+1 + 3
+1+3`
+`3-2`
+`4*3`
+`9/3`
+O R pode ser usado como calculadora...
+`1 + 3`
+`3 - 2`
+`4 * 3`
+`9 / 3`
+1 + 3
+3 - 2
+4 * 3
+9 / 3
+3+4
+5-2
+4*2
+9/3
+root(9)
+sqrt(9)
+2
+2^3
+3+4
+5-2
+4*2
+9/3
+sqrt(9)
+2^3
+minha_lista <- c(s01,masculino,23,"ensino médio")   # essa lista guarda informações de diferentes tipos
+minha_lista <- c(s01,masculino,23,"ensino médio")
+minha_lista <- c(s01,masculino,23,"ensino médio")   # essa lista guarda informações de diferentes tipos
+minha_lista <- c("s01","masculino",23,"ensino médio")
+c(sexo,idade)
+sexo <- c("m","f","m","m","f") # vetor com informações sobre sexo
+idade <- c(25,32,78,12,NA) # vetor com informações de idade
+# A partir dos dois vetores anteriores é possível criar um dataframe (conjunto de vetores)
+df <- data.frame(sexo, idade)
+data.frame(sexo, idade)
+df
+df
+idade
+sexo_idade <- data.frame(sexo_cod,idade)
+sexo_idade
+df <- data.frame(sexo, idade)
+plot(df)
+idade <- c(25,32,78,12,45) # vetor com informações de idade
+# A partir dos dois vetores anteriores é possível criar um dataframe (conjunto de vetores)
+df <- data.frame(sexo, idade)
+df
+df
+df
+plot(df)
+# A partir dos dois vetores anteriores é possível criar um dataframe (conjunto de vetores)
+df <- data.frame(sexo, idade)
+table(df)
+kable(df)
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+kable(df)
+table(df)
+glimpse(sexo)
+sexo <- as.vector(c("m","f","m","m","f")) # vetor com informações sobre sexo
+glimpse(sexo)
+glimpse(idade)
+idade <- c(25,32,78,12,NA) # vetor com informações de idade
+glimpse(idade)
+data.frame(sexo, idade)
+sexo_idade
+glimpse(sexo_cod)
+glimpse(idade)
+sexo <- c("m","f","m","m","f") # vetor com informações sobre sexo
+sexo
+sexo_cod
+idade
+# A partir dos dois vetores anteriores é possível criar um dataframe (conjunto de vetores)
+df <- data.frame(sexo,idade)
+df
+df
+mean(idade, na.rm = T)
+sexo_idade <- data.frame(sexo_cod,idade)
+sexo_idade
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+df1<- read_xlsx("Habilidades Socioemocioniais e Adaptação Acadêmica em Universitários  (respostas).xlsx")
+---
+title: "Introdução ao R"
+author: "Maurício Bueno"
+date: "25/04/2021"
+output: html_document
+---
+[R](https://cran.r-project.org/Rlogo.svg)
+df2 %>%                                     # pega o objeto (dataframe) df2
+summarise(                                # e aplica a funcao summarise, que monta uma tabela com os dados solicitados
+média_idade = mean(df2$idade, na.rm = T), # que, nesse caso, são: 1) a media da idade, removendo os dados ausentes (NA)
+desvio_padrão = sd(df2$idade, na.rm = T)) # e o desvio padrao da idade, removendo os dados ausentes (NA)
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T)) %>% kable()
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+library(tidyverse)
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+library(readxl)
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+df2 %>% summarise(média_idade = mean(df2$idade, na.rm = T),desvio_padrão = sd(df2$idade, na.rm = T))
+idade
+sexo
+tce <- df2 %>% select(55:72)
+tce_escores<- rowSums(tce)
+source('~/MAURICIO/UFPE/Pós-Graduação/Orientações/Fernanda Lira/Doutorado/data_analysis/analise_dados_fernanda.R', encoding = 'UTF-8', echo=TRUE)

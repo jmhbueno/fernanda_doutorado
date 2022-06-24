@@ -1,0 +1,77 @@
+---
+title: "Introdução ao R"
+author: "Maurício Bueno"
+date: "25/04/2021"
+output:
+ html_document: 
+     toc: yes
+     toc_float:
+       collapsed: no
+---
+# Introdução  
+## Conceitos iniciais  
+  
+O R é um ambiente dentro do qual se pode fazer uma infinidade de operações estatísticas e de processamento de dados. Foi concebido para ser colaborativo e gratuito. Qualquer pessoa pode criar uma função, ou um conjunto de funções (pacote) e disponibilizar a outros usuários... **gratuitamente**!  
+Estamos usando um outro software, o RStudio, que facilita o uso do R, ao disponibilizar um conjunto de quatro janelas que funcionam para a digitação de texto, display de resultados, um visualizador de objetos (arquivos) gerados ao realizar um trabalho e uma quarta janela que mostra um conjunto de informações (arquivos, plotagens, pacotes instalados, help, e visualizador de imagens).  
+É possível rodar um comando no R:  
+1) Selecionando-o e clicando em "Run" na aba superior da área de digitação.  
+2) Colocar o cursor em qualquer ponto da linha de comando e apertar `CTRL+ENTER`.  
+Algumas funções não precisam da instalação de pacotes, pois já vêm com o R. São funções básicas, como operações matemáticas, plotagem, estatísticas básicas, entre outras.  
+Existem também alguns operadores importantes no R, que você deve conhecer:  
+O comando `<-`, por exemplo, que pode ser obtido pressionando juntas as teclas `ALT`e `-`, indica que o resultado de uma operação será salva num objeto. Por exemplo: o comando abaixo diz, faça a soma de 3 com 4 e guarde o resultado num objeto chamado "soma". Esse objeto aparecerá no environment (quadrante superior direito do RStudio).
+```{r}
+soma <- 3 + 4 
+```
+O comando # permite que você faça comentários, sem que o R o entenda como comando. Por exemplo:  
+```{r}
+soma <- 3 + 4   # Esse comando calcula a soma de 3 + 4 e salva no objeto "soma"
+```
+O texto que aparece em verde é ignorado pelo R.  
+Esses são os comandos mais básicos. Há muitos outros atalhos...  
+`CTRL + 1`: Passa o cursor para o script;  
+`CTRL + 2`: Passa o cursor para o console;  
+`SETA PARA CIMA` (no console): acessa o histórico de comandos anteriores;  
+`CTRL + ALT + SETA PARA ESQUERDA OU DIREITA`: Navega entre as abas de script abertas;  
+`CTRL + SHIFT + ENTER`: “Source”. Executa o Script inteiro;  
+`CTRL + S`: Salva o Script;  
+`CTRL + L`: Limpa o console;  
+`ALT + SHIFT + K`: Veja a lista de atalhos.  
+  
+
+# Funções básicas: Usando o R como calculadora  
+  
+O R pode ser usado como calculadora...  
+```{r}
+3+4
+5-2
+4*2
+9/3
+sqrt(9)
+2^3
+```
+
+# Criando objetos    
+Os objetos que podem ser criados no R são: listas, vetores, matrizes, array, dataframes. Vamos definir os que mais usamos em nossas análises.  
+Lista: é uma coleção de objetos.  
+```{r}
+minha_lista <- c("s01","masculino",23,"ensino médio")   
+# minha_lista é um objeto do tipo lista, que guarda informações de diferentes tipos: id, sexo, idade, escolaridade
+# essas informações foram salvas num objeto do tipo lista, que pode ser visto no environment
+# informações não-numéricas aparecem entre "aspas" para o R reconhecer cada elemento dentro do objeto
+# as informações dessa lista poderiam ser de um sujeito num df, cada informação é de uma natureza
+# o comando "c", significa "concatenar". É usado para inserir mais de uma informação.
+```
+Vetor: é uma coleção de objetos **da mesma natureza**. Por exemplo, as variáveis que costumamos colocar nas colunas dos nossos bancos de dados são **vetores**.   
+```{r}
+meu_vetor <- c("masculino","feminino","feminino","masculino","feminino")
+# meu_vetor é um objeto do tipo vetor porque contem informações da mesma natureza
+# poderiam ser informações sobre o sexo dos sujeitos em um  banco de dados
+```
+Dataframe: é um conjunto de vetores. Nossos bancos de dados, no R, recebem o nome de dataframes.  
+```{r}
+sexo <- c("m","f","m","m","f") # vetor com informações sobre sexo
+idade <- c(25,32,78,12,NA) # vetor com informações de idade
+# A partir dos dois vetores anteriores é possível criar um dataframe (conjunto de vetores)
+df <- data.frame(sexo,idade) 
+```
+

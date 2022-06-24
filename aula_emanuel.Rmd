@@ -1,0 +1,30 @@
+---
+title: "Aula Emanuel"
+author: "Maurício Bueno"
+date: "26/04/2021"
+output: html_document
+---
+
+# Ativação dos Pacotes  
+```{r message=FALSE,warning=FALSE}
+library(GPArotation) # Pacote para rotacao analise fatorial.
+library(tidyverse)
+library(psych)
+library(knitr)
+library(readxl)
+library(lavaan)
+library(semPlot)
+library(haven)
+library(foreign)
+library(pillar)
+library(mirt)
+library(igraph)
+library(igraphdata)
+library(readxl)
+```
+
+
+```{r message=FALSE,warning=FALSE}
+df1<- read_xlsx("Habilidades Socioemocioniais e Adaptação Acadêmica em Universitários  (respostas).xlsx")
+```
+
